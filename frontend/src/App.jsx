@@ -5,33 +5,62 @@ import AdminPanel from "./components/AdminPanel.jsx";
 import { api } from "./api.js";
 
 export default function App() {
-  const [view, setView]               = useState("map");      // "map" | "admin"
-  const [koridorList, setKoridorList] = useState([]);
-  const [selectedKoridor, setSelectedKoridor] = useState(new Set());
-  const [showRusak, setShowRusak]     = useState(true);
+  const [view, setView]               = useState("map");
 
+  // Data master
+  const [ruteList, setRuteList]       = useState([]);
   const [halteFc, setHalteFc]         = useState({ type: "FeatureCollection", features: [] });
-  const [koridorFc, setKoridorFc]     = useState({ type: "FeatureCollection", features: [] });
+  const [ruteFc, setRuteFc]           = useState({ type: "FeatureCollection", features: [] });
 
-  const [radiusResult, setRadiusResult] = useState(null);     // { lat, lng, radius, halte: [] }
+  // Filter & toggle layer
+  const [selectedRute, setSelectedRute]   = useState(new Set());
+  const [showRute, setShowRute]           = useState(true);
+  const [showHalte, setShowHalte]         = useState(true);
+  const [showRusak, setShowRusak]         = useState(true);
 
-  // Initial load
+  // Pencarian radius via klik peta
+  const [radius, setRadius]               = useState(500);
+  const [radiusResult, setRadiusResult]   = useState(null);   // { lat, lng, radius, halte }
+
   async function reload() {
-    const [k, kf, hf] = await Promise.all([
-      api.listKoridor(), api.koridorGeojsonAll(), api.halteGeojson(),
+    // Load 3 endpoint INDEPENDEN — kalau satu gagal, sisanya tetap dimuat
+    const [rRes, rfRes, hfRes] = await Promise.allSettled([
+      api.listRute(), api.ruteGeojsonAll(), api.halteGeojson(),
     ]);
-    setKoridorList(k);
-    setKoridorFc(kf);
-    setHalteFc(hf);
-    if (selectedKoridor.size === 0) {
-      setSelectedKoridor(new Set(k.map((x) => x.id_koridor)));
+
+    if (rRes.status === "fulfilled") {
+      const r = rRes.value;
+      console.log("[App] /rute returned", r.length, "rute");
+      setRuteList(r);
+      setSelectedRute((prev) => {
+        if (prev.size === 0) return new Set(r.map((x) => x.id_rute));
+        const next = new Set(prev);
+        r.forEach((x) => next.add(x.id_rute));
+        return next;
+      });
+    } else {
+      console.error("[App] /rute gagal:", rRes.reason);
+    }
+
+    if (rfRes.status === "fulfilled") {
+      console.log("[App] /rute/geojson:", rfRes.value.features?.length, "features");
+      setRuteFc(rfRes.value);
+    } else {
+      console.error("[App] /rute/geojson gagal:", rfRes.reason);
+    }
+
+    if (hfRes.status === "fulfilled") {
+      console.log("[App] /halte/geojson:", hfRes.value.features?.length, "features");
+      setHalteFc(hfRes.value);
+    } else {
+      console.error("[App] /halte/geojson gagal:", hfRes.reason);
     }
   }
 
-  useEffect(() => { reload().catch(console.error); }, []);
+  useEffect(() => { reload(); }, []);
 
-  function toggleKoridor(id) {
-    setSelectedKoridor((prev) => {
+  function toggleRute(id) {
+    setSelectedRute((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
@@ -39,12 +68,23 @@ export default function App() {
   }
 
   function toggleAll(checked) {
-    setSelectedKoridor(checked ? new Set(koridorList.map((k) => k.id_koridor)) : new Set());
+    setSelectedRute(checked ? new Set(ruteList.map((r) => r.id_rute)) : new Set());
   }
 
-  async function searchRadius(lat, lng, radius) {
-    const halte = await api.halteRadius(lat, lng, radius);
-    setRadiusResult({ lat, lng, radius, halte });
+  /** Dipanggil saat user klik di peta utama (atau pakai GPS) */
+  async function searchRadiusAt({ lat, lng }) {
+    try {
+      const halte = await api.halteRadius(lat, lng, radius);
+      setRadiusResult({ lat, lng, radius, halte });
+    } catch (err) {
+      alert("Gagal ambil halte radius: " + err.message);
+    }
+  }
+
+  /** Re-search saat slider radius berubah, tapi titik sudah ada */
+  function changeRadius(newR) {
+    setRadius(newR);
+    if (radiusResult) searchRadiusAt({ lat: radiusResult.lat, lng: radiusResult.lng });
   }
 
   return (
@@ -62,34 +102,39 @@ export default function App() {
       {view === "map" ? (
         <div className="body">
           <Sidebar
-            koridorList={koridorList}
-            selectedKoridor={selectedKoridor}
-            onToggleKoridor={toggleKoridor}
+            ruteList={ruteList}
+            selectedRute={selectedRute}
+            onToggleRute={toggleRute}
             onToggleAll={toggleAll}
-            showRusak={showRusak}
-            onToggleRusak={setShowRusak}
-            onSearchRadius={searchRadius}
+            showRute={showRute}     onToggleShowRute={setShowRute}
+            showHalte={showHalte}   onToggleShowHalte={setShowHalte}
+            showRusak={showRusak}   onToggleRusak={setShowRusak}
+            radius={radius}         onChangeRadius={changeRadius}
+            onPickFromGPS={searchRadiusAt}
             radiusResult={radiusResult}
             onClearRadius={() => setRadiusResult(null)}
           />
           <div className="map-area">
             <MapView
-              koridorFc={koridorFc}
+              ruteFc={ruteFc}
               halteFc={halteFc}
-              selectedKoridor={selectedKoridor}
+              selectedRute={selectedRute}
+              showHalte={showHalte}
+              showRute={showRute}
               showRusak={showRusak}
               radiusResult={radiusResult}
+              onMapClick={searchRadiusAt}
             />
             <div className="legend">
-              <h3>Legenda Kondisi Halte</h3>
-              <div className="item"><span className="dot" style={{ background: "#16a34a" }} /> Baik</div>
-              <div className="item"><span className="dot" style={{ background: "#f59e0b" }} /> Rusak</div>
-              <div className="item"><span className="dot" style={{ background: "#dc2626" }} /> Terbengkalai</div>
+              <h3>Legenda Halte</h3>
+              <div className="item"><span className="dot" style={{ background: "#16a34a" }} /> Beroperasi</div>
+              <div className="item"><span className="dot" style={{ background: "#dc2626" }} /> Tidak Beroperasi</div>
+              <div className="item"><span className="dot" style={{ background: "#1e3a8a" }} /> Titik Pencarian</div>
             </div>
           </div>
         </div>
       ) : (
-        <AdminPanel koridorList={koridorList} onChanged={reload} />
+        <AdminPanel ruteList={ruteList} onChanged={reload} />
       )}
     </div>
   );

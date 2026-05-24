@@ -1,46 +1,38 @@
 import { useState } from "react";
+import {
+  IconMousePointer, IconLocateFixed, IconXCircle, IconMapPin,
+  IconLayers, IconRoute, IconBus, IconAlert, IconSearch, IconLoader,
+} from "./Icons.jsx";
 
 export default function Sidebar({
-  koridorList,
-  selectedKoridor,
-  onToggleKoridor,
+  ruteList,
+  selectedRute,
+  onToggleRute,
   onToggleAll,
-  showRusak,
-  onToggleRusak,
-  onSearchRadius,
+  showRute, onToggleShowRute,
+  showHalte, onToggleShowHalte,
+  showRusak, onToggleRusak,
+  radius, onChangeRadius,
+  onPickFromGPS,
   radiusResult,
   onClearRadius,
 }) {
-  const [lat, setLat]       = useState("");
-  const [lng, setLng]       = useState("");
-  const [radius, setRadius] = useState(500);
-  const [loading, setLoading] = useState(false);
+  const [loadingGPS, setLoadingGPS] = useState(false);
 
   function handleGPS() {
     if (!navigator.geolocation) {
       alert("Browser tidak mendukung Geolocation");
       return;
     }
-    setLoading(true);
+    setLoadingGPS(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLat(pos.coords.latitude.toFixed(6));
-        setLng(pos.coords.longitude.toFixed(6));
-        setLoading(false);
+        onPickFromGPS({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLoadingGPS(false);
       },
-      (err) => { alert("Gagal ambil GPS: " + err.message); setLoading(false); },
+      (err) => { alert("Gagal ambil GPS: " + err.message); setLoadingGPS(false); },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }
-
-  async function handleSearch(e) {
-    e.preventDefault();
-    if (!lat || !lng) { alert("Latitude & longitude wajib diisi"); return; }
-    setLoading(true);
-    try {
-      await onSearchRadius(parseFloat(lat), parseFloat(lng), parseInt(radius, 10));
-    } catch (err) { alert("Error: " + err.message); }
-    finally { setLoading(false); }
   }
 
   function badgeClass(k) {
@@ -49,55 +41,65 @@ export default function Sidebar({
          : "badge badge-terbengkalai";
   }
 
-  const allChecked = koridorList.length > 0 && selectedKoridor.size === koridorList.length;
+  const allChecked = ruteList.length > 0 && selectedRute.size === ruteList.length;
 
   return (
     <aside className="sidebar">
-      {/* ===== Pencarian Radius ===== */}
+      {/* ===== Pencarian Halte Terdekat ===== */}
       <div className="card">
-        <h2>Pencarian Halte Terdekat</h2>
-        <form onSubmit={handleSearch}>
-          <label>Latitude</label>
-          <input type="number" step="any" value={lat} onChange={(e) => setLat(e.target.value)}
-                 placeholder="0.5083" />
-          <label>Longitude</label>
-          <input type="number" step="any" value={lng} onChange={(e) => setLng(e.target.value)}
-                 placeholder="101.4458" />
-          <label>Radius: {radius} meter</label>
-          <input type="range" min="100" max="5000" step="50"
-                 value={radius} onChange={(e) => setRadius(e.target.value)} />
-          <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-            <button type="button" className="btn btn-secondary" onClick={handleGPS} disabled={loading}>
-              Pakai GPS
+        <h2><IconSearch size={14} /> Pencarian Halte Terdekat</h2>
+
+        <div style={{
+          background: "#dbeafe", border: "1px solid #93c5fd", padding: 8,
+          borderRadius: 6, fontSize: ".78rem", marginBottom: 8, color: "#1e3a8a",
+          display: "flex", gap: 6, alignItems: "flex-start",
+        }}>
+          <IconMousePointer size={16} style={{ marginTop: 1 }} />
+          <span><b>Klik di peta</b> untuk menentukan lokasi referensi. Lingkaran radius dan daftar halte terdekat akan tampil otomatis.</span>
+        </div>
+
+        <label>Radius: <b>{radius}</b> meter</label>
+        <input type="range" min="100" max="5000" step="50"
+               value={radius} onChange={(e) => onChangeRadius(parseInt(e.target.value, 10))} />
+
+        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+          <button type="button" className="btn btn-secondary" onClick={handleGPS} disabled={loadingGPS}>
+            {loadingGPS ? <IconLoader size={14} /> : <IconLocateFixed size={14} />}{" "}
+            {loadingGPS ? "Mengambil GPS..." : "Pakai GPS"}
+          </button>
+          {radiusResult && (
+            <button type="button" className="btn btn-danger" onClick={onClearRadius}>
+              <IconXCircle size={14} /> Reset
             </button>
-            <button type="submit" className="btn" disabled={loading}>
-              {loading ? "Mencari..." : "Cari"}
-            </button>
-            {radiusResult && (
-              <button type="button" className="btn btn-secondary" onClick={onClearRadius}>
-                Reset
-              </button>
-            )}
+          )}
+        </div>
+
+        {radiusResult && (
+          <div style={{
+            marginTop: 8, padding: 8, background: "#f0f9ff", borderRadius: 6,
+            fontSize: ".78rem", fontFamily: "monospace",
+            display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <IconMapPin size={14} color="#1e3a8a" />
+            {radiusResult.lat.toFixed(6)}, {radiusResult.lng.toFixed(6)}
           </div>
-        </form>
+        )}
       </div>
 
-      {/* ===== Hasil radius ===== */}
+      {/* ===== Hasil pencarian ===== */}
       {radiusResult && (
         <div className="card">
-          <h2>Hasil ({radiusResult.halte.length})</h2>
-          {radiusResult.halte.length === 0 ? (
-            <div className="muted" style={{ fontSize: ".8rem", color: "#6b7280" }}>
-              Tidak ada halte dalam radius {radiusResult.radius} m.
+          <h2>Hasil ({radiusResult.halte?.length ?? 0} halte)</h2>
+          {!radiusResult.halte?.length ? (
+            <div style={{ fontSize: ".8rem", color: "#6b7280" }}>
+              Tidak ada halte dalam radius {radiusResult.radius} m. Coba perbesar radius.
             </div>
           ) : (
             <ul className="result-list">
               {radiusResult.halte.map((h) => (
                 <li key={h.id_halte}>
                   <div><b>{h.nama_halte}</b> <span className={badgeClass(h.kondisi_fisik)}>{h.kondisi_fisik}</span></div>
-                  <div className="muted">
-                    {h.kode_trayek || "—"} · {Math.round(h.jarak_meter)} m
-                  </div>
+                  <div className="muted">{h.kode_trayek || "—"} · {Math.round(h.jarak_meter)} m</div>
                 </li>
               ))}
             </ul>
@@ -105,35 +107,52 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* ===== Filter Koridor ===== */}
+      {/* ===== Toggle Layer ===== */}
       <div className="card">
-        <h2>Filter Koridor TMP</h2>
+        <h2><IconLayers size={14} /> Layer Peta</h2>
         <label className="checkbox-row">
-          <input type="checkbox" checked={allChecked}
-                 onChange={(e) => onToggleAll(e.target.checked)} />
-          <span><b>Semua Koridor</b></span>
+          <input type="checkbox" checked={showRute}
+                 onChange={(e) => onToggleShowRute(e.target.checked)} />
+          <IconRoute size={14} color="#1e3a8a" />
+          <span>Tampilkan Rute (LineString)</span>
         </label>
-        <div style={{ borderTop: "1px solid #e5e7eb", margin: "6px 0" }} />
-        {koridorList.map((k) => (
-          <label key={k.id_koridor} className="checkbox-row">
-            <input type="checkbox"
-                   checked={selectedKoridor.has(k.id_koridor)}
-                   onChange={() => onToggleKoridor(k.id_koridor)} />
-            <span className="swatch" style={{ background: k.warna_peta }} />
-            <span>{k.kode_trayek} · {k.titik_awal} – {k.titik_akhir}</span>
-          </label>
-        ))}
-        <div style={{ borderTop: "1px solid #e5e7eb", margin: "8px 0 4px" }} />
+        <label className="checkbox-row">
+          <input type="checkbox" checked={showHalte}
+                 onChange={(e) => onToggleShowHalte(e.target.checked)} />
+          <IconBus size={14} color="#16a34a" />
+          <span>Tampilkan Halte (Point)</span>
+        </label>
         <label className="checkbox-row">
           <input type="checkbox" checked={showRusak}
                  onChange={(e) => onToggleRusak(e.target.checked)} />
-          <span>Tampilkan halte rusak / terbengkalai</span>
+          <IconAlert size={14} color="#dc2626" />
+          <span>Tampilkan halte tidak beroperasi</span>
         </label>
       </div>
 
-      <div className="card" style={{ fontSize: ".75rem", color: "#6b7280" }}>
-        Sumber: Proposal SIG Kelompok 1 (Trans Metro Pekanbaru), OSM, Dishub Pekanbaru.
-        Backend: FastAPI + PostGIS. Frontend: React + Leaflet.
+      {/* ===== Filter per-rute ===== */}
+      <div className="card">
+        <h2><IconRoute size={14} /> Filter Rute TMP ({ruteList.length})</h2>
+        <label className="checkbox-row">
+          <input type="checkbox" checked={allChecked}
+                 onChange={(e) => onToggleAll(e.target.checked)} />
+          <span><b>Semua Rute</b></span>
+        </label>
+        <div style={{ borderTop: "1px solid #e5e7eb", margin: "6px 0" }} />
+        {ruteList.map((r) => (
+          <label key={r.id_rute} className="checkbox-row">
+            <input type="checkbox"
+                   checked={selectedRute.has(r.id_rute)}
+                   onChange={() => onToggleRute(r.id_rute)} />
+            <span className="swatch" style={{ background: r.warna_peta }} />
+            <span>{r.kode_trayek} · {r.titik_awal} – {r.titik_akhir}</span>
+          </label>
+        ))}
+      </div>
+
+      <div className="card" style={{ fontSize: ".72rem", color: "#6b7280" }}>
+        Backend: FastAPI sinkron + PostGIS (raw SQL).
+        Snap-to-road via OSRM saat menambah rute baru.
       </div>
     </aside>
   );

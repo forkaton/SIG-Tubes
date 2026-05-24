@@ -1,6 +1,16 @@
 // Helper fetch ringan untuk REST API FastAPI
 const BASE = import.meta.env.VITE_API_BASE || "/api/v1";
 
+function buildUrl(path, params = {}) {
+  const cleaned = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) =>
+      v !== undefined && v !== null && v !== ""
+    )
+  );
+  const qs = new URLSearchParams(cleaned).toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
@@ -15,24 +25,38 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  // ===== Koridor =====
-  listKoridor:        ()                       => request("/koridor"),
-  koridorGeojsonAll:  ()                       => request("/koridor/geojson"),
-  koridorGeojson:     (id)                     => request(`/koridor/${id}/geojson`),
+  // ===== Rute =====
+  listRute:        ()       => request("/rute"),
+  ruteGeojsonAll:  ()       => request("/rute/geojson"),
+  ruteGeojson:     (id)     => request(`/rute/${id}/geojson`),
+  createRute:      (body)   => request("/rute",       { method: "POST",   body: JSON.stringify(body) }),
+  updateRute:      (id, b)  => request(`/rute/${id}`, { method: "PUT",    body: JSON.stringify(b) }),
+  deleteRute:      (id)     => request(`/rute/${id}`, { method: "DELETE" }),
+  snapAllRute:     ()       => request("/rute/snap-all", { method: "POST" }),
 
   // ===== Halte =====
-  listHalte:          (params = {})            => request(`/halte?${new URLSearchParams(params)}`),
-  halteGeojson:       (params = {})            => request(`/halte/geojson?${new URLSearchParams(params)}`),
-  halteRadius:        (lat, lng, radius = 500) =>
-    request(`/halte/radius?lat=${lat}&lng=${lng}&radius=${radius}`),
-  createHalte:        (body)                   => request("/halte",       { method: "POST",   body: JSON.stringify(body) }),
-  updateHalte:        (id, body)               => request(`/halte/${id}`, { method: "PUT",    body: JSON.stringify(body) }),
-  deleteHalte:        (id)                     => request(`/halte/${id}`, { method: "DELETE" }),
-
-  // ===== Armada =====
-  listArmada:         (params = {})            => request(`/armada?${new URLSearchParams(params)}`),
-  statistikArmada:    ()                       => request("/armada/statistik"),
-  createArmada:       (body)                   => request("/armada",       { method: "POST",   body: JSON.stringify(body) }),
-  updateArmada:       (id, body)               => request(`/armada/${id}`, { method: "PUT",    body: JSON.stringify(body) }),
-  deleteArmada:       (id)                     => request(`/armada/${id}`, { method: "DELETE" }),
+  listHalte:       (p = {}) => request(buildUrl("/halte", p)),
+  halteGeojson:    (p = {}) => request(buildUrl("/halte/geojson", p)),
+  halteRadius:     (lat, lng, r = 500) =>
+    request(buildUrl("/halte/radius", { lat, lng, radius: r })),
+  createHalte:     (body)     => request("/halte",       { method: "POST",   body: JSON.stringify(body) }),
+  updateHalte:     (id, body) => request(`/halte/${id}`, { method: "PUT",    body: JSON.stringify(body) }),
+  deleteHalte:     (id)       => request(`/halte/${id}`, { method: "DELETE" }),
 };
+
+/**
+ * Snap-to-road menggunakan OSRM public API (multi-waypoint).
+ * Mengembalikan GeoJSON LineString yang mengikuti jalan raya.
+ */
+export async function osrmRouteMulti(waypoints) {
+  if (waypoints.length < 2) return null;
+  const coords = waypoints.map((w) => `${w.lng},${w.lat}`).join(";");
+  const url =
+    `https://router.project-osrm.org/route/v1/driving/${coords}` +
+    `?overview=full&geometries=geojson`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`OSRM ${res.status}`);
+  const data = await res.json();
+  if (!data.routes?.length) throw new Error("OSRM: rute tidak ditemukan");
+  return data.routes[0].geometry;
+}

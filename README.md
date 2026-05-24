@@ -7,56 +7,88 @@
 - Adi Septriansyah — 123140021
 - Jonathan Nicholaus Damero Sinaga — 123140153
 
-Implementasi WebGIS *full-stack* untuk **Trans Metro Pekanbaru (TMP)** sebagai
-respons terhadap krisis operasional TMP 2024–2025 (hanya 23 dari 90 bus
-operasional, banyak halte rusak/terbengkalai). Sistem memetakan **8 koridor BRT**,
-**25 halte** beserta status fisik, dan **25 armada** lengkap dengan fitur
-pencarian halte terdekat berbasis GPS (ST_DWithin).
+Implementasi WebGIS *full-stack* untuk **Trans Metro Pekanbaru (TMP)** —
+memetakan 8 **rute** BRT, 25 **halte** beserta status fisik, pencarian halte
+terdekat (ST_DWithin), dan admin panel CRUD dengan **klik peta untuk koordinat**
+serta **snap-to-road via OSRM** saat menambah rute baru.
 
 ---
 
 ## 🧱 Arsitektur
 
 ```
-┌──────────────┐    HTTP/JSON    ┌──────────────┐   SQL/PostGIS  ┌──────────────┐
-│  Frontend    │ ──────────────> │  Backend     │ ─────────────> │  PostgreSQL  │
-│  React +     │                 │  FastAPI     │                │  + PostGIS   │
-│  react-leaf  │ <────────────── │  + Pydantic  │ <───────────── │  (GIST idx)  │
-└──────────────┘    GeoJSON      └──────────────┘                └──────────────┘
-   :5173                            :8000                            :5432
+┌──────────────┐    HTTP/JSON    ┌──────────────┐   Raw SQL/PostGIS  ┌──────────────┐
+│  Frontend    │ ──────────────> │  Backend     │ ─────────────────> │  PostgreSQL  │
+│  React +     │                 │  FastAPI     │                    │  + PostGIS   │
+│  react-leaf  │ <────────────── │  (sync)      │ <───────────────── │  (GIST idx)  │
+└──────────────┘    GeoJSON      └──────────────┘                    └──────────────┘
+   :5173                            :8000                                :5432
+       │                              │
+       │ OSRM public API              │ Auto-seed GeoJSON pada startup
+       ▼                              ▼
+   router.project-osrm.org      backend/data/{rute,halte}.geojson
 ```
 
-| Lapis    | Tech                                              | Folder       |
-|----------|---------------------------------------------------|--------------|
-| Database | PostgreSQL ≥14 + PostGIS ≥3                       | [database/](database) |
-| Backend  | FastAPI 0.115 · SQLAlchemy 2 · GeoAlchemy2 · Pydantic v2 | [backend/](backend)  |
-| Frontend | React 18 · Vite 5 · react-leaflet 4 · Leaflet 1.9 | [frontend/](frontend) |
+| Lapis    | Tech                                                | Folder            |
+|----------|-----------------------------------------------------|-------------------|
+| Database | PostgreSQL ≥14 + PostGIS ≥3                         | [database/](database) |
+| Backend  | FastAPI **sinkron** · SQLAlchemy 2 (raw SQL) · Pydantic v2 | [backend/](backend) |
+| Frontend | React 18 · Vite 5 · react-leaflet 4 · OSRM API      | [frontend/](frontend) |
+
+> **Catatan v2.0:** entitas **Armada** dihapus. Entitas **Koridor** diganti
+> menjadi **Rute** (tabel `rute_trayek`, endpoint `/api/v1/rute`). Backend
+> menggunakan **raw SQL via SQLAlchemy `text()`** tanpa GeoAlchemy2. Seeding
+> bukan lagi via file `.sql` melainkan **otomatis dari GeoJSON** saat startup
+> FastAPI.
 
 ---
 
 ## 🗃️ 1. Setup Database (PostGIS)
 
-Prasyarat: PostgreSQL ≥14 dengan ekstensi PostGIS terpasang.
+> **Jika sebelumnya sudah membuat DB versi lama (ada tabel `armada_bus_tmp` / `koridor_trayek`),
+> drop dulu lalu buat baru — schema kolom berubah.**
 
 ```powershell
-# Windows (PowerShell) — gunakan psql dari PATH PostgreSQL
-$env:PGPASSWORD = "postgres"
+$env:PGPASSWORD = "PASSWORD_ANDA"
+
+# Drop & recreate (PERHATIAN: data lama akan hilang)
+dropdb   -U postgres sig_tmp_pekanbaru 2>$null
 createdb -U postgres sig_tmp_pekanbaru
 
 psql -U postgres -d sig_tmp_pekanbaru -f database/01_schema.sql
-psql -U postgres -d sig_tmp_pekanbaru -f database/02_seed_koridor.sql
-psql -U postgres -d sig_tmp_pekanbaru -f database/03_seed_halte.sql
-psql -U postgres -d sig_tmp_pekanbaru -f database/04_seed_armada.sql
 ```
 
-Verifikasi:
+Itu saja — **tidak perlu menjalankan file seed SQL**. Saat backend pertama kali
+dijalankan, ia akan otomatis memuat 8 rute & 25 halte dari
+`backend/data/rute.geojson` dan `backend/data/halte.geojson` ke PostGIS.
+
+> **🔑 Penting — OSRM Snap-to-Road saat seeding:**
+> Seeder akan memanggil OSRM public API untuk setiap rute, supaya geometri
+> yang disimpan **mengikuti jalan raya** (bukan garis lurus antar landmark).
+> Pastikan ada koneksi internet saat startup pertama. Bila OSRM gagal,
+> seeder fallback ke geometri waypoint mentah dengan peringatan.
+
+### Re-seed (kalau data lama berupa garis lurus)
+
+Bila Anda sudah menjalankan versi seeder lama (rute tampil sebagai garis
+lurus), jalankan script reseed untuk membersihkan & re-snap via OSRM:
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+python reseed.py
+```
+
+Script ini akan `TRUNCATE` rute & halte lalu seed ulang dengan OSRM. Setelah
+selesai, refresh browser — rute akan mengikuti jalan.
+
+Verifikasi setelah backend dijalankan:
 
 ```sql
-SELECT COUNT(*) FROM koridor_trayek;        -- 8
-SELECT COUNT(*) FROM halte_infrastruktur;   -- 25
-SELECT COUNT(*) FROM armada_bus_tmp;        -- 25
+SELECT COUNT(*) FROM rute_trayek;          -- 8
+SELECT COUNT(*) FROM halte_infrastruktur;  -- 25
 
--- Test query spasial radius 1 km dari MPP Pekanbaru
+-- Tes query spasial radius 1 km dari MPP Pekanbaru
 SELECT nama_halte,
        ROUND(ST_Distance(koordinat_titik::geography,
             ST_SetSRID(ST_MakePoint(101.4458, 0.5083),4326)::geography)::numeric, 2) AS jarak_m
@@ -70,19 +102,16 @@ ORDER  BY jarak_m;
 ### Struktur ERD
 
 ```
-koridor_trayek (id_koridor PK, LineString geom)
+rute_trayek (id_rute PK, LineString geom)
   │  1:N memiliki
-  ├──> halte_infrastruktur (id_halte PK, Point geom, FK id_koridor_pelintas)
-  │
-  │  1:N mengoperasikan
-  └──> armada_bus_tmp     (id_bus  PK, FK id_koridor_penugasan)
+  └──> halte_infrastruktur (id_halte PK, Point geom, FK id_rute_pelintas)
 ```
 
-GIST spatial index dibuat pada `geometri_jalur` dan `koordinat_titik`.
+GIST spatial index pada `geometri_jalur` dan `koordinat_titik`.
 
 ---
 
-## 🐍 2. Setup Backend (FastAPI)
+## 🐍 2. Setup Backend (FastAPI sinkron, raw SQL)
 
 ```powershell
 cd backend
@@ -90,39 +119,48 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-Copy-Item .env.example .env   # edit DATABASE_URL jika perlu
+# Edit DATABASE_URL sesuai password postgres Anda
+copy .env.example .env
+notepad .env
 
 uvicorn app.main:app --reload --port 8000
 ```
 
+Pada log startup, Anda akan melihat:
+
+```
+INFO main: Menjalankan auto-seeder GeoJSON...
+INFO seeder: Seeder rute: 8 baris dimasukkan.
+INFO seeder: Seeder halte: 25 baris dimasukkan.
+INFO main: Auto-seeder selesai: {'rute': 8, 'halte': 25}
+```
+
 Buka:
 - Swagger UI: <http://localhost:8000/docs>
-- ReDoc:      <http://localhost:8000/redoc>
 - OpenAPI:    <http://localhost:8000/openapi.json>
 
-### Daftar Endpoint
+### Daftar Endpoint (v2.0)
 
-| Method | Path                                        | Deskripsi |
-|-------:|---------------------------------------------|-----------|
-| GET    | `/api/v1/halte`                             | List halte (filter `kondisi`, `id_koridor`) |
-| GET    | `/api/v1/halte/radius?lat&lng&radius`       | **ST_DWithin** — halte dalam radius (m) |
-| GET    | `/api/v1/halte/geojson`                     | FeatureCollection halte |
-| GET    | `/api/v1/halte/{id}`                        | Detail halte |
-| POST   | `/api/v1/halte`                             | Tambah halte (validasi Pydantic) |
-| PUT    | `/api/v1/halte/{id}`                        | Update halte |
-| DELETE | `/api/v1/halte/{id}`                        | Hapus halte |
-| GET    | `/api/v1/koridor`                           | List koridor |
-| GET    | `/api/v1/koridor/geojson`                   | FeatureCollection semua koridor |
-| GET    | `/api/v1/koridor/{id}/geojson`              | GeoJSON Feature satu koridor |
-| GET    | `/api/v1/koridor/{id}/intersect-halte?buffer_meter` | Halte di sekitar jalur (ST_DWithin LineString) |
-| POST/PUT/DELETE | `/api/v1/koridor[/{id}]`           | CRUD koridor |
-| GET    | `/api/v1/armada`                            | List armada |
-| GET    | `/api/v1/armada/statistik`                  | Statistik armada/koridor/status |
-| POST/PUT/DELETE | `/api/v1/armada[/{id}]`            | CRUD armada |
+| Method | Path                                          | Deskripsi |
+|-------:|-----------------------------------------------|-----------|
+| GET    | `/api/v1/halte`                               | List halte (filter `kondisi`, `id_rute`) |
+| GET    | `/api/v1/halte/radius?lat&lng&radius`         | **ST_DWithin** — halte dalam radius (m) |
+| GET    | `/api/v1/halte/geojson`                       | FeatureCollection halte |
+| GET    | `/api/v1/halte/{id}`                          | Detail halte |
+| POST   | `/api/v1/halte`                               | Tambah halte (validasi Pydantic) |
+| PUT    | `/api/v1/halte/{id}`                          | Update halte |
+| DELETE | `/api/v1/halte/{id}`                          | Hapus halte |
+| GET    | `/api/v1/rute`                                | List rute |
+| GET    | `/api/v1/rute/geojson`                        | FeatureCollection semua rute |
+| GET    | `/api/v1/rute/{id}/geojson`                   | GeoJSON Feature satu rute |
+| GET    | `/api/v1/rute/{id}/halte-sekitar?buffer_meter`| Halte di sekitar jalur (ST_DWithin LineString) |
+| POST   | `/api/v1/rute`                                | Tambah rute (kirim GeoJSON LineString) |
+| PUT    | `/api/v1/rute/{id}`                           | Update rute |
+| DELETE | `/api/v1/rute/{id}`                           | Hapus rute |
 
 ---
 
-## ⚛️ 3. Setup Frontend (React + Vite + Leaflet)
+## ⚛️ 3. Setup Frontend (React + Vite + Leaflet + OSRM)
 
 ```powershell
 cd frontend
@@ -130,57 +168,27 @@ npm install
 npm run dev
 ```
 
-Buka <http://localhost:5173>. Vite di-proxy ke backend `http://localhost:8000` via
-`/api`, jadi tidak perlu konfigurasi CORS tambahan saat dev.
+Buka <http://localhost:5173>.
 
 ### Fitur Frontend
 
-- **Map Centric Layout** — peta OpenStreetMap full screen, sidebar 340 px.
-- **Filter Koridor** — checkbox per koridor + toggle tampilkan halte rusak.
-- **Pencarian Halte Terdekat** — input lat/lng manual atau **Pakai GPS**
-  (browser geolocation), slider radius 100–5000 m, panggil
-  `GET /api/v1/halte/radius`. Hasil ditampilkan di sidebar + lingkaran biru di peta.
-- **Popup Detail Halte** — nama, jalan, koridor, badge kondisi fisik, keterangan.
-- **Popup Detail Koridor** — kode, titik awal/akhir, panjang km.
-- **Panel Admin CRUD** — tab Halte & Armada dengan form Tambah/Edit/Hapus.
-
----
-
-## 🧪 4. Smoke Test End-to-End
-
-1. `psql ...` — load 4 file SQL.
-2. `uvicorn app.main:app --reload` — backend di :8000.
-3. `npm run dev` — frontend di :5173.
-4. Buka <http://localhost:5173>, peta Pekanbaru tampil dengan 8 garis koridor + 25 titik halte.
-5. Klik **Pakai GPS** → **Cari** (radius default 500 m) → list halte terdekat muncul.
-6. Klik tab **Admin CRUD** → tambah halte baru lat `0.51`, lng `101.45` → kembali ke peta → titik baru muncul.
-
----
-
-## 📐 5. Pemenuhan Komponen Wajib (sesuai Panduan SIG ITERA)
-
-### 4.1 Database (PostGIS) — ✅
-- [x] 3 tabel berelasi: `koridor_trayek`, `halte_infrastruktur`, `armada_bus_tmp`
-- [x] 2 tipe geometri: **LineString** (koridor) + **Point** (halte)
-- [x] Spatial index **GIST** pada 2 kolom geometri
-- [x] SRID konsisten **EPSG:4326**
-- [x] Sample data: 8 koridor, 25 halte, 25 armada (>20 minimal)
-
-### 4.2 Backend (FastAPI) — ✅
-- [x] CRUD lengkap untuk 3 entitas (Halte, Koridor, Armada)
-- [x] 2+ query spasial: `ST_DWithin` (radius halte, intersect koridor), `ST_Distance` (urutkan jarak)
-- [x] Output **GeoJSON** (`/halte/geojson`, `/koridor/geojson`)
-- [x] Validasi **Pydantic** (range lat/lng, regex warna hex, enum kondisi)
-- [x] Error handling (HTTP 400/404 + rollback transaksi)
-- [x] Dokumentasi otomatis **Swagger/OpenAPI** di `/docs`
-
-### 4.3 Frontend (React + Leaflet) — ✅
-- [x] Peta interaktif `react-leaflet` + TileLayer OSM
-- [x] Layer dari API: GeoJSON LineString + CircleMarker dari data backend
-- [x] Popup detail saat klik objek (halte & koridor)
-- [x] Form input/edit data (Admin Panel)
-- [x] Filter & pencarian (filter koridor + pencarian radius berbasis GPS)
-- [x] Responsive (grid layout 340 px sidebar + map)
+- **Map Centric Layout** — OpenStreetMap full screen, sidebar filter 340 px.
+- **Filter Rute** — checkbox per rute + toggle tampilkan halte rusak.
+- **Pencarian Halte Terdekat** — input lat/lng manual atau **Pakai GPS**,
+  slider radius 100–5000 m → `GET /api/v1/halte/radius`. Hasil di sidebar +
+  lingkaran biru di peta.
+- **Popup Detail** — halte (nama, jalan, rute, kondisi) & rute (kode, panjang).
+- **Admin CRUD Halte** — `HaltePicker.jsx`:
+  - **Klik peta** di mana saja → marker biru pindah, koordinat otomatis terisi.
+  - Tombol **📍 Gunakan Lokasi GPS Saya** → langsung set ke posisi GPS.
+  - Overlay rute eksisting ditampilkan transparan agar admin tahu trayek terdekat.
+- **Admin CRUD Rute** — `RutePicker.jsx`:
+  - Klik pertama → **Titik Awal** (marker hijau).
+  - Klik kedua → **Titik Akhir** (marker merah).
+  - Otomatis memanggil **OSRM** `https://router.project-osrm.org/route/v1/driving/...`
+    → menerima GeoJSON LineString **yang mengikuti jalan raya** (snap-to-road).
+  - Polyline biru tebal ditampilkan + estimasi panjang km dihitung haversine.
+  - Tombol Simpan mengirim LineString utuh ke `POST /api/v1/rute`.
 
 ---
 
@@ -189,46 +197,51 @@ Buka <http://localhost:5173>. Vite di-proxy ke backend `http://localhost:8000` v
 ```
 SIG_TUBES/
 ├── database/
-│   ├── 01_schema.sql            # CREATE TABLE + GIST index + trigger
-│   ├── 02_seed_koridor.sql      # 8 LineString koridor TMP
-│   ├── 03_seed_halte.sql        # 25 Point halte (Baik/Rusak/Terbengkalai)
-│   └── 04_seed_armada.sql       # 25 armada bus
+│   └── 01_schema.sql            # CREATE TABLE rute_trayek + halte_infrastruktur
 ├── backend/
 │   ├── requirements.txt
 │   ├── .env.example
+│   ├── data/
+│   │   ├── rute.geojson         # 8 LineString koridor TMP
+│   │   └── halte.geojson        # 25 Point halte
 │   └── app/
-│       ├── main.py              # FastAPI app + CORS + include routers
+│       ├── main.py              # FastAPI + lifespan hook auto-seeder
 │       ├── config.py            # Pydantic settings
-│       ├── database.py          # SQLAlchemy engine/session
-│       ├── models.py            # ORM (GeoAlchemy2)
-│       ├── schemas.py           # Pydantic schemas
+│       ├── database.py          # SQLAlchemy engine/session sinkron
+│       ├── models.py            # Slim ORM (raw SQL untuk geom)
+│       ├── schemas.py           # Pydantic schemas (Rute, Halte)
+│       ├── seeder.py            # Auto-seed dari GeoJSON
 │       └── routers/
-│           ├── halte.py         # CRUD + ST_DWithin radius
-│           ├── koridor.py       # CRUD + GeoJSON + intersect-halte
-│           └── armada.py        # CRUD + statistik
+│           ├── halte.py         # CRUD + ST_DWithin radius (raw SQL)
+│           └── rute.py          # CRUD + GeoJSON + ST_DWithin LineString
 └── frontend/
     ├── package.json
-    ├── vite.config.js           # proxy /api -> :8000
+    ├── vite.config.js
     ├── index.html
     └── src/
         ├── main.jsx
-        ├── App.jsx              # state + routing tab
-        ├── api.js               # fetch helper
+        ├── App.jsx
+        ├── api.js               # fetch helper + osrmRoute()
         ├── styles.css
         └── components/
-            ├── MapView.jsx      # MapContainer + GeoJSON + Circle
-            ├── Sidebar.jsx      # filter koridor + radius search
-            └── AdminPanel.jsx   # CRUD halte & armada
+            ├── MapView.jsx      # Peta utama (rute + halte + radius)
+            ├── Sidebar.jsx      # Filter + radius search GPS
+            ├── HaltePicker.jsx  # Klik peta → koordinat halte + GPS
+            ├── RutePicker.jsx   # Klik A→B → OSRM snap-to-road
+            └── AdminPanel.jsx   # CRUD Halte + Rute (integrasi picker)
 ```
 
 ---
 
-## 🔗 Referensi Data
+## 🔗 Catatan Teknis
 
-- Proposal Kelompok 1 SIG ITERA 2026 — Sistem Informasi Rute Angkutan Pekanbaru
-- Traveloka: Rute & jadwal Trans Metro Pekanbaru
-- Wikipedia: Terminal Bandar Raya Payung Sekaki (TBRPS)
-- Pemkot Pekanbaru — Evaluasi pengelolaan TMP 2024
-- DPRD Pekanbaru — laporan kondisi halte TMP terbengkalai
-- OpenStreetMap (Overpass Turbo) untuk verifikasi landmark
-- Format & teknik import: lihat [SUMBER DATA.md](SUMBER%20DATA.md)
+- **Raw SQL only**: setiap router menggunakan `db.execute(text("..."))` untuk
+  mengeksekusi kueri spasial PostGIS (`ST_DWithin`, `ST_Distance`, `ST_AsGeoJSON`,
+  `ST_SetSRID(ST_MakePoint(...))`). GeoAlchemy2 tidak diperlukan.
+- **Auto-seed idempoten**: seeder mengecek `COUNT(*)` lebih dulu — kalau tabel
+  sudah berisi data, ia melompat. Restart backend aman.
+- **OSRM**: memakai server publik `router.project-osrm.org` (rate-limited).
+  Untuk produksi, pertimbangkan self-host OSRM atau gunakan alternatif seperti
+  `leaflet-routing-machine` dengan plugin OSRM/GraphHopper.
+- **GeoJSON konvensi**: koordinat `[longitude, latitude]` (bukan lat,lng).
+  Konversi ke Leaflet `[lat, lng]` dilakukan saat render.

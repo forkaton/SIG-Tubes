@@ -1,68 +1,139 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";
+import HaltePicker from "./HaltePicker.jsx";
+import RutePicker  from "./RutePicker.jsx";
+import {
+  IconBus, IconRoute, IconRefresh, IconBarChart, IconXCircle, IconAlert,
+  IconEdit, IconTrash, IconPlus, IconRuler, IconWand, IconLoader, IconCheckCircle,
+} from "./Icons.jsx";
 
-export default function AdminPanel({ koridorList, onChanged }) {
+export default function AdminPanel({ onChanged }) {
   const [tab, setTab] = useState("halte");
 
   return (
     <div className="admin">
       <h2>Panel Administrasi CRUD</h2>
       <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-        <button
-          className="btn" onClick={() => setTab("halte")}
-          style={{ background: tab === "halte" ? "#1e3a8a" : "#6b7280", color: "white", padding: "8px 14px", border: 0, borderRadius: 6 }}
-        >Halte</button>
-        <button
-          className="btn" onClick={() => setTab("armada")}
-          style={{ background: tab === "armada" ? "#1e3a8a" : "#6b7280", color: "white", padding: "8px 14px", border: 0, borderRadius: 6 }}
-        >Armada</button>
+        <button onClick={() => setTab("halte")} style={btnStyle(tab === "halte")}>
+          <IconBus size={14} /> Halte
+        </button>
+        <button onClick={() => setTab("rute")}  style={btnStyle(tab === "rute")}>
+          <IconRoute size={14} /> Rute
+        </button>
       </div>
 
       {tab === "halte"
-        ? <HalteCrud koridorList={koridorList} onChanged={onChanged} />
-        : <ArmadaCrud koridorList={koridorList} onChanged={onChanged} />}
+        ? <HalteCrud onChanged={onChanged} />
+        : <RuteCrud  onChanged={onChanged} />}
+    </div>
+  );
+}
+
+function btnStyle(active) {
+  return {
+    background: active ? "#1e3a8a" : "#6b7280",
+    color: "white", padding: "8px 14px", border: 0, borderRadius: 6, fontWeight: 600,
+    display: "inline-flex", alignItems: "center", gap: 6,
+  };
+}
+
+function RefreshButton({ onClick, loading }) {
+  return (
+    <button type="button" onClick={onClick} disabled={loading}
+      style={{
+        background: "#0f766e", color: "white", border: 0,
+        padding: "6px 12px", borderRadius: 6, fontSize: ".85rem",
+        display: "inline-flex", alignItems: "center", gap: 5,
+      }}>
+      {loading ? <IconLoader size={14} /> : <IconRefresh size={14} />}
+      {loading ? "Memuat..." : "Refresh"}
+    </button>
+  );
+}
+
+function ErrorBox({ error, onRetry }) {
+  if (!error) return null;
+  return (
+    <div style={{
+      background: "#fee2e2", color: "#991b1b", padding: 12, borderRadius: 8,
+      marginBottom: 12, fontSize: ".85rem",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+        <IconXCircle size={16} /> <b>Error memuat data:</b> {error}
+      </div>
+      <button onClick={onRetry} style={{
+        marginTop: 8, background: "#dc2626", color: "white", border: 0,
+        padding: "6px 12px", borderRadius: 6, fontSize: ".85rem",
+      }}>Coba Ulang</button>
     </div>
   );
 }
 
 // ============================================================
-// CRUD HALTE
+// CRUD HALTE — form simple + restrict to selected rute
 // ============================================================
-function HalteCrud({ koridorList, onChanged }) {
-  const [list, setList]       = useState([]);
-  const [editing, setEditing] = useState(null);
-  const empty = {
-    nama_halte: "", nama_jalan: "", id_koridor_pelintas: "",
-    kondisi_fisik: "Baik", keterangan: "",
-    latitude: "", longitude: "",
-  };
-  const [form, setForm] = useState(empty);
+function HalteCrud({ onChanged }) {
+  const [halteList, setHalteList] = useState([]);
+  const [ruteList,  setRuteList]  = useState([]);
+  const [ruteFc,    setRuteFc]    = useState({ type: "FeatureCollection", features: [] });
+  const [editing,   setEditing]   = useState(null);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState(null);
 
-  async function reload() { setList(await api.listHalte()); }
-  useEffect(() => { reload().catch(console.error); }, []);
+  const empty = {
+    nama_halte: "", id_rute_pelintas: "",
+    kondisi_fisik: "Beroperasi", keterangan: "",
+  };
+  const [form, setForm]   = useState(empty);
+  const [coords, setCoords] = useState(null);
+
+  async function reload() {
+    setLoading(true); setError(null);
+    const [hlR, rlR, rfcR] = await Promise.allSettled([
+      api.listHalte(), api.listRute(), api.ruteGeojsonAll(),
+    ]);
+    const errors = [];
+    if (hlR.status === "fulfilled") setHalteList(hlR.value);
+    else errors.push("listHalte: " + hlR.reason.message);
+    if (rlR.status === "fulfilled") setRuteList(rlR.value);
+    else errors.push("listRute: " + rlR.reason.message);
+    if (rfcR.status === "fulfilled") setRuteFc(rfcR.value);
+    else errors.push("ruteGeojsonAll: " + rfcR.reason.message);
+    if (errors.length) setError(errors.join(" | "));
+    setLoading(false);
+  }
+  useEffect(() => { reload(); }, []);
+
+  // Saat rute dipilih berubah, validasi koord existing — jika di luar rute baru,
+  // hapus koord supaya admin sadar harus klik ulang.
+  useEffect(() => {
+    if (!coords || !form.id_rute_pelintas) return;
+    // Tidak otomatis hapus, biarkan admin lihat efek pemilihan rute baru.
+  }, [form.id_rute_pelintas]);
 
   function onEdit(h) {
     setEditing(h.id_halte);
     setForm({
-      nama_halte:          h.nama_halte || "",
-      nama_jalan:          h.nama_jalan || "",
-      id_koridor_pelintas: h.id_koridor_pelintas || "",
-      kondisi_fisik:       h.kondisi_fisik,
-      keterangan:          h.keterangan || "",
-      latitude:            h.latitude,
-      longitude:           h.longitude,
+      nama_halte:       h.nama_halte || "",
+      id_rute_pelintas: h.id_rute_pelintas ? String(h.id_rute_pelintas) : "",
+      kondisi_fisik:    h.kondisi_fisik === "Beroperasi" ? "Beroperasi" : "Tidak Beroperasi",
+      keterangan:       h.keterangan || "",
     });
+    setCoords({ lat: h.latitude, lng: h.longitude });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function onCancel() { setEditing(null); setForm(empty); }
+  function onCancel() { setEditing(null); setForm(empty); setCoords(null); }
 
   async function onSubmit(e) {
     e.preventDefault();
+    if (!coords) { alert("Klik peta untuk memilih koordinat halte"); return; }
     const payload = {
       ...form,
-      id_koridor_pelintas: form.id_koridor_pelintas ? parseInt(form.id_koridor_pelintas, 10) : null,
-      latitude:  parseFloat(form.latitude),
-      longitude: parseFloat(form.longitude),
+      nama_jalan: null,
+      id_rute_pelintas: form.id_rute_pelintas ? parseInt(form.id_rute_pelintas, 10) : null,
+      latitude:  coords.lat,
+      longitude: coords.lng,
     };
     try {
       if (editing) await api.updateHalte(editing, payload);
@@ -79,11 +150,52 @@ function HalteCrud({ koridorList, onChanged }) {
     catch (err) { alert(err.message); }
   }
 
+  const restrictToRuteId = form.id_rute_pelintas
+    ? parseInt(form.id_rute_pelintas, 10)
+    : null;
+
   return (
     <>
-      <h3>{editing ? `Edit Halte #${editing}` : "Tambah Halte Baru"}</h3>
-      <form onSubmit={onSubmit} style={{ background: "white", padding: 16, borderRadius: 8, marginBottom: 16 }}>
-        <div className="form-grid">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <h3 style={{ margin: 0 }}>
+          {editing ? <><IconEdit size={16} /> Edit Halte #{editing}</> : <><IconPlus size={16} /> Tambah Halte Baru</>}
+        </h3>
+        <span style={{
+          background: "#dbeafe", color: "#1e3a8a", padding: "4px 10px",
+          borderRadius: 999, fontSize: ".8rem", display: "inline-flex", alignItems: "center", gap: 4,
+        }}>
+          <IconBarChart size={12} /> Rute: <b>{ruteList.length}</b> · Halte: <b>{halteList.length}</b>
+        </span>
+        <RefreshButton onClick={reload} loading={loading} />
+      </div>
+
+      <ErrorBox error={error} onRetry={reload} />
+
+      <form onSubmit={onSubmit} style={{ background: "white", padding: 16, borderRadius: 8, marginTop: 12, marginBottom: 16 }}>
+        {/* Pilih rute DULU supaya picker tahu restriksi */}
+        <div style={{ marginBottom: 10 }}>
+          <label><b>Rute</b> ({ruteList.length} tersedia)</label>
+          <select style={{ width: "100%", padding: 6 }}
+            value={form.id_rute_pelintas}
+            onChange={(e) => setForm({ ...form, id_rute_pelintas: e.target.value })}>
+            <option value="">— Tanpa rute (bebas klik di mana saja) —</option>
+            {ruteList.map((r) => (
+              <option key={r.id_rute} value={r.id_rute}>
+                {r.kode_trayek} — {r.nama_trayek}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <HaltePicker
+          value={coords}
+          onChange={setCoords}
+          ruteFc={ruteFc}
+          restrictToRuteId={restrictToRuteId}
+          height={360}
+        />
+
+        <div className="form-grid" style={{ marginTop: 12 }}>
           <div className="full">
             <label>Nama Halte</label>
             <input style={{ width: "100%", padding: 6 }} required
@@ -91,42 +203,12 @@ function HalteCrud({ koridorList, onChanged }) {
               onChange={(e) => setForm({ ...form, nama_halte: e.target.value })} />
           </div>
           <div>
-            <label>Nama Jalan</label>
-            <input style={{ width: "100%", padding: 6 }}
-              value={form.nama_jalan}
-              onChange={(e) => setForm({ ...form, nama_jalan: e.target.value })} />
-          </div>
-          <div>
-            <label>Koridor</label>
-            <select style={{ width: "100%", padding: 6 }}
-              value={form.id_koridor_pelintas}
-              onChange={(e) => setForm({ ...form, id_koridor_pelintas: e.target.value })}>
-              <option value="">— Tanpa koridor —</option>
-              {koridorList.map((k) => (
-                <option key={k.id_koridor} value={k.id_koridor}>
-                  {k.kode_trayek} — {k.nama_trayek}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label>Latitude</label>
-            <input type="number" step="any" required style={{ width: "100%", padding: 6 }}
-              value={form.latitude}
-              onChange={(e) => setForm({ ...form, latitude: e.target.value })} />
-          </div>
-          <div>
-            <label>Longitude</label>
-            <input type="number" step="any" required style={{ width: "100%", padding: 6 }}
-              value={form.longitude}
-              onChange={(e) => setForm({ ...form, longitude: e.target.value })} />
-          </div>
-          <div>
-            <label>Kondisi Fisik</label>
+            <label>Kondisi</label>
             <select style={{ width: "100%", padding: 6 }}
               value={form.kondisi_fisik}
               onChange={(e) => setForm({ ...form, kondisi_fisik: e.target.value })}>
-              <option>Baik</option><option>Rusak</option><option>Terbengkalai</option>
+              <option value="Beroperasi">Beroperasi</option>
+              <option value="Tidak Beroperasi">Tidak Beroperasi</option>
             </select>
           </div>
           <div className="full">
@@ -136,184 +218,321 @@ function HalteCrud({ koridorList, onChanged }) {
               onChange={(e) => setForm({ ...form, keterangan: e.target.value })} />
           </div>
         </div>
-        <button type="submit" className="btn" style={{ background: "#1e3a8a", color: "white", padding: "8px 14px", border: 0, borderRadius: 6, fontWeight: 600 }}>
-          {editing ? "Simpan" : "Tambah"}
+
+        <button type="submit"
+          style={{ background: "#1e3a8a", color: "white", padding: "8px 14px", border: 0, borderRadius: 6, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          {editing ? <><IconEdit size={14} /> Simpan Perubahan</> : <><IconPlus size={14} /> Tambah Halte</>}
         </button>
         {editing && (
           <button type="button" onClick={onCancel}
-            style={{ marginLeft: 8, background: "#6b7280", color: "white", padding: "8px 14px", border: 0, borderRadius: 6 }}>
-            Batal
+            style={{ marginLeft: 8, background: "#6b7280", color: "white", padding: "8px 14px", border: 0, borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <IconXCircle size={14} /> Batal
           </button>
         )}
       </form>
 
-      <h3>Daftar Halte ({list.length})</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th><th>Nama</th><th>Koridor</th><th>Kondisi</th><th>Koord</th><th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((h) => (
-            <tr key={h.id_halte}>
-              <td>{h.id_halte}</td>
-              <td>{h.nama_halte}<div style={{ color: "#6b7280", fontSize: ".75rem" }}>{h.nama_jalan}</div></td>
-              <td>{h.kode_trayek || <em style={{ color: "#9ca3af" }}>—</em>}</td>
-              <td><span className={`badge badge-${h.kondisi_fisik.toLowerCase()}`}>{h.kondisi_fisik}</span></td>
-              <td style={{ fontFamily: "monospace", fontSize: ".75rem" }}>
-                {h.latitude.toFixed(5)}, {h.longitude.toFixed(5)}
-              </td>
-              <td>
-                <div className="actions">
-                  <button onClick={() => onEdit(h)} style={{ background: "#2563eb" }}>Edit</button>
-                  <button onClick={() => onDelete(h.id_halte)} style={{ background: "#dc2626" }}>Hapus</button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h3>Daftar Halte ({halteList.length})</h3>
+      {halteList.length === 0 ? (
+        <div style={{
+          background: "#fef3c7", color: "#92400e", padding: 12, borderRadius: 8,
+          fontSize: ".85rem", display: "flex", alignItems: "flex-start", gap: 8,
+        }}>
+          <IconAlert size={16} />
+          <span>Tabel halte kosong. Klik <b>Refresh</b> atau jalankan migrasi/seeder backend.</span>
+        </div>
+      ) : (
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Nama</th><th>Rute</th><th>Kondisi</th><th>Koord</th><th>Aksi</th></tr>
+          </thead>
+          <tbody>
+            {halteList.map((h) => (
+              <tr key={h.id_halte}>
+                <td>{h.id_halte}</td>
+                <td>{h.nama_halte}</td>
+                <td>{h.kode_trayek || <em style={{ color: "#9ca3af" }}>—</em>}</td>
+                <td><span className={`badge badge-${(h.kondisi_fisik || "").toLowerCase().replace(/\s+/g, "-")}`}>{h.kondisi_fisik}</span></td>
+                <td style={{ fontFamily: "monospace", fontSize: ".75rem" }}>
+                  {h.latitude.toFixed(5)}, {h.longitude.toFixed(5)}
+                </td>
+                <td>
+                  <div className="actions">
+                    <button onClick={() => onEdit(h)} style={{ background: "#2563eb", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <IconEdit size={12} /> Edit
+                    </button>
+                    <button onClick={() => onDelete(h.id_halte)} style={{ background: "#dc2626", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <IconTrash size={12} /> Hapus
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </>
   );
 }
 
 // ============================================================
-// CRUD ARMADA
+// CRUD RUTE — multi-waypoint snap-to-road + Edit mode
 // ============================================================
-function ArmadaCrud({ koridorList, onChanged }) {
+function RuteCrud({ onChanged }) {
   const [list, setList]       = useState([]);
-  const [editing, setEditing] = useState(null);
-  const empty = {
-    nomor_lambung: "", plat_nomor: "", tahun_perakitan: "",
-    id_koridor_penugasan: "", status_operasional: "Beroperasi", keterangan: "",
-  };
-  const [form, setForm] = useState(empty);
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState(null);
+  const [snapping, setSnapping]   = useState(false);
+  const [snapResult, setSnapResult] = useState(null);
 
-  async function reload() { setList(await api.listArmada()); }
-  useEffect(() => { reload().catch(console.error); }, []);
+  const empty = { kode_trayek: "", nama_trayek: "", warna_peta: "#3388ff" };
+  const [form, setForm]     = useState(empty);
+  const [picker, setPicker] = useState(null);
+  const [editing, setEditing] = useState(null);                  // id_rute | null
+  const [refLineString, setRefLineString] = useState(null);      // geometri existing (mode edit)
 
-  function onEdit(a) {
-    setEditing(a.id_bus);
-    setForm({
-      nomor_lambung:        a.nomor_lambung,
-      plat_nomor:           a.plat_nomor || "",
-      tahun_perakitan:      a.tahun_perakitan || "",
-      id_koridor_penugasan: a.id_koridor_penugasan || "",
-      status_operasional:   a.status_operasional,
-      keterangan:           a.keterangan || "",
-    });
+  async function reload() {
+    setLoading(true); setError(null);
+    try { setList(await api.listRute()); }
+    catch (err) { setError(err.message); }
+    finally { setLoading(false); }
   }
-  function onCancel() { setEditing(null); setForm(empty); }
+  useEffect(() => { reload(); }, []);
+
+  function onCancel() {
+    setEditing(null);
+    setForm(empty);
+    setPicker(null);
+    setRefLineString(null);
+  }
+
+  async function onEdit(r) {
+    setEditing(r.id_rute);
+    setForm({
+      kode_trayek: r.kode_trayek,
+      nama_trayek: r.nama_trayek,
+      warna_peta:  r.warna_peta,
+    });
+    setPicker(null);
+    try {
+      const feat = await api.ruteGeojson(r.id_rute);
+      setRefLineString(feat.geometry);
+    } catch (err) {
+      console.error("Gagal load geometri:", err);
+      setRefLineString(null);
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   async function onSubmit(e) {
     e.preventDefault();
-    const payload = {
-      ...form,
-      tahun_perakitan:      form.tahun_perakitan ? parseInt(form.tahun_perakitan, 10) : null,
-      id_koridor_penugasan: form.id_koridor_penugasan ? parseInt(form.id_koridor_penugasan, 10) : null,
-    };
-    try {
-      if (editing) await api.updateArmada(editing, payload);
-      else         await api.createArmada(payload);
-      onCancel(); await reload(); onChanged?.();
-    } catch (err) { alert(err.message); }
+
+    if (editing) {
+      // Mode edit: geometri opsional
+      const payload = { ...form };
+      if (picker?.lineString) payload.geometri_jalur = picker.lineString;
+      try {
+        await api.updateRute(editing, payload);
+        onCancel();
+        await reload();
+        onChanged?.();
+      } catch (err) { alert(err.message); }
+    } else {
+      // Mode create: geometri wajib
+      if (!picker?.lineString) {
+        alert("Klik peta untuk menggambar rute (minimal 2 waypoint)");
+        return;
+      }
+      try {
+        await api.createRute({ ...form, geometri_jalur: picker.lineString });
+        onCancel();
+        await reload();
+        onChanged?.();
+      } catch (err) { alert(err.message); }
+    }
   }
 
   async function onDelete(id) {
-    if (!confirm("Yakin hapus armada ini?")) return;
-    try { await api.deleteArmada(id); await reload(); onChanged?.(); }
+    if (!confirm("Yakin hapus rute ini? Halte yang tertaut akan kehilangan referensi.")) return;
+    try { await api.deleteRute(id); await reload(); onChanged?.(); }
     catch (err) { alert(err.message); }
   }
 
+  async function onSnapAll() {
+    if (!confirm(
+      "Re-snap geometri SELURUH rute via OSRM?\n\n" +
+      "Memanggil OSRM untuk setiap rute (sekitar 1 detik/rute) dan UPDATE kolom " +
+      "geometri_jalur agar mengikuti jalan raya. Tidak menghapus data."
+    )) return;
+    setSnapping(true);
+    setSnapResult(null);
+    try {
+      const result = await api.snapAllRute();
+      setSnapResult(result);
+      await reload();
+      onChanged?.();
+    } catch (err) {
+      alert("Gagal: " + err.message);
+    } finally {
+      setSnapping(false);
+    }
+  }
+
+  const panjangKmEstimasi = useMemo(() => {
+    if (!picker?.lineString) return null;
+    const c = picker.lineString.coordinates;
+    let m = 0;
+    for (let i = 1; i < c.length; i++) {
+      const [lng1, lat1] = c[i-1], [lng2, lat2] = c[i];
+      const R = 6371000;
+      const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+      const dφ = (lat2-lat1) * Math.PI / 180, dλ = (lng2-lng1) * Math.PI / 180;
+      const a = Math.sin(dφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;
+      m += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+    return (m/1000).toFixed(2);
+  }, [picker]);
+
+  const isEdit = !!editing;
+
   return (
     <>
-      <h3>{editing ? `Edit Armada #${editing}` : "Tambah Armada Baru"}</h3>
-      <form onSubmit={onSubmit} style={{ background: "white", padding: 16, borderRadius: 8, marginBottom: 16 }}>
-        <div className="form-grid">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <h3 style={{ margin: 0 }}>
+          {isEdit
+            ? <><IconEdit size={16} /> Edit Rute #{editing}</>
+            : <><IconPlus size={16} /> Tambah Rute Baru</>}
+        </h3>
+        <span style={{
+          background: "#dbeafe", color: "#1e3a8a", padding: "4px 10px",
+          borderRadius: 999, fontSize: ".8rem", display: "inline-flex", alignItems: "center", gap: 4,
+        }}>
+          <IconBarChart size={12} /> Rute tersedia: <b>{list.length}</b>
+        </span>
+        <RefreshButton onClick={reload} loading={loading} />
+        <button type="button" onClick={onSnapAll} disabled={snapping}
+          style={{
+            background: snapping ? "#9ca3af" : "#7c3aed", color: "white", border: 0,
+            padding: "6px 12px", borderRadius: 6, fontSize: ".85rem",
+            display: "inline-flex", alignItems: "center", gap: 5,
+            cursor: snapping ? "wait" : "pointer",
+          }}>
+          {snapping ? <IconLoader size={14} /> : <IconWand size={14} />}
+          {snapping ? "Memanggil OSRM..." : "Re-snap Semua Rute via OSRM"}
+        </button>
+      </div>
+
+      <ErrorBox error={error} onRetry={reload} />
+
+      {snapResult && (
+        <div style={{
+          background: "#dcfce7", color: "#166534", padding: 12, borderRadius: 8,
+          marginTop: 12, fontSize: ".85rem",
+        }}>
+          <b style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <IconCheckCircle size={14} /> Re-snap selesai:
+          </b>{" "}
+          {snapResult.sukses} / {snapResult.total} rute berhasil disnap ke jalan raya.
+        </div>
+      )}
+
+      <form onSubmit={onSubmit} style={{ background: "white", padding: 16, borderRadius: 8, marginTop: 12, marginBottom: 16 }}>
+        <RutePicker
+          value={picker}
+          onChange={setPicker}
+          onReset={() => setPicker(null)}
+          referenceLineString={refLineString}
+          height={420}
+        />
+
+        {panjangKmEstimasi && (
+          <div style={{ margin: "8px 0", fontSize: ".85rem", color: "#1e3a8a", display: "flex", alignItems: "center", gap: 6 }}>
+            <IconRuler size={14} /> Panjang rute baru: <b>{panjangKmEstimasi} km</b> ·
+            {" "}<b>{picker.lineString.coordinates.length}</b> titik geometri ·
+            {" "}<b>{picker.waypoints?.length || 0}</b> waypoint
+          </div>
+        )}
+
+        <div className="form-grid" style={{ marginTop: 12 }}>
           <div>
-            <label>Nomor Lambung</label>
-            <input required style={{ width: "100%", padding: 6 }}
-              value={form.nomor_lambung} disabled={!!editing}
-              onChange={(e) => setForm({ ...form, nomor_lambung: e.target.value })} />
+            <label>Kode Trayek</label>
+            <input required maxLength={10} style={{ width: "100%", padding: 6 }}
+              placeholder="K05" value={form.kode_trayek}
+              onChange={(e) => setForm({ ...form, kode_trayek: e.target.value.toUpperCase() })} />
           </div>
           <div>
-            <label>Plat Nomor</label>
-            <input style={{ width: "100%", padding: 6 }}
-              value={form.plat_nomor}
-              onChange={(e) => setForm({ ...form, plat_nomor: e.target.value })} />
-          </div>
-          <div>
-            <label>Tahun Perakitan</label>
-            <input type="number" min="1990" max="2100" style={{ width: "100%", padding: 6 }}
-              value={form.tahun_perakitan}
-              onChange={(e) => setForm({ ...form, tahun_perakitan: e.target.value })} />
-          </div>
-          <div>
-            <label>Status Operasional</label>
-            <select style={{ width: "100%", padding: 6 }}
-              value={form.status_operasional}
-              onChange={(e) => setForm({ ...form, status_operasional: e.target.value })}>
-              <option>Beroperasi</option>
-              <option>Mogok Subsidi BBM</option>
-              <option>Rusak Berat</option>
-            </select>
+            <label>Warna Highlight</label>
+            <input type="color" style={{ width: "100%", padding: 2, height: 34 }}
+              value={form.warna_peta}
+              onChange={(e) => setForm({ ...form, warna_peta: e.target.value })} />
           </div>
           <div className="full">
-            <label>Koridor Penugasan</label>
-            <select style={{ width: "100%", padding: 6 }}
-              value={form.id_koridor_penugasan}
-              onChange={(e) => setForm({ ...form, id_koridor_penugasan: e.target.value })}>
-              <option value="">— Tanpa koridor —</option>
-              {koridorList.map((k) => (
-                <option key={k.id_koridor} value={k.id_koridor}>
-                  {k.kode_trayek} — {k.nama_trayek}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="full">
-            <label>Keterangan</label>
-            <textarea rows={2} style={{ width: "100%", padding: 6 }}
-              value={form.keterangan}
-              onChange={(e) => setForm({ ...form, keterangan: e.target.value })} />
+            <label>Nama Trayek</label>
+            <input required maxLength={150} style={{ width: "100%", padding: 6 }}
+              placeholder="Rute 05 (Awal - Akhir)" value={form.nama_trayek}
+              onChange={(e) => setForm({ ...form, nama_trayek: e.target.value })} />
           </div>
         </div>
-        <button type="submit" style={{ background: "#1e3a8a", color: "white", padding: "8px 14px", border: 0, borderRadius: 6, fontWeight: 600 }}>
-          {editing ? "Simpan" : "Tambah"}
+
+        <button type="submit"
+          disabled={!isEdit && !picker?.lineString}
+          style={{
+            background: (isEdit || picker?.lineString) ? "#1e3a8a" : "#9ca3af",
+            color: "white", padding: "8px 14px", border: 0, borderRadius: 6, fontWeight: 600,
+            cursor: (isEdit || picker?.lineString) ? "pointer" : "not-allowed",
+            display: "inline-flex", alignItems: "center", gap: 6,
+          }}>
+          {isEdit
+            ? <><IconEdit size={14} /> Simpan Perubahan</>
+            : <><IconPlus size={14} /> Simpan Rute Baru</>}
         </button>
-        {editing && (
+        {isEdit && (
           <button type="button" onClick={onCancel}
-            style={{ marginLeft: 8, background: "#6b7280", color: "white", padding: "8px 14px", border: 0, borderRadius: 6 }}>
-            Batal
+            style={{ marginLeft: 8, background: "#6b7280", color: "white", padding: "8px 14px", border: 0, borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <IconXCircle size={14} /> Batal
           </button>
         )}
       </form>
 
-      <h3>Daftar Armada ({list.length})</h3>
-      <table>
-        <thead>
-          <tr><th>ID</th><th>Lambung</th><th>Plat</th><th>Tahun</th><th>Koridor</th><th>Status</th><th>Aksi</th></tr>
-        </thead>
-        <tbody>
-          {list.map((a) => (
-            <tr key={a.id_bus}>
-              <td>{a.id_bus}</td>
-              <td><b>{a.nomor_lambung}</b></td>
-              <td>{a.plat_nomor || "—"}</td>
-              <td>{a.tahun_perakitan || "—"}</td>
-              <td>{a.kode_trayek || <em style={{ color: "#9ca3af" }}>—</em>}</td>
-              <td style={{ fontSize: ".8rem" }}>{a.status_operasional}</td>
-              <td>
-                <div className="actions">
-                  <button onClick={() => onEdit(a)} style={{ background: "#2563eb" }}>Edit</button>
-                  <button onClick={() => onDelete(a.id_bus)} style={{ background: "#dc2626" }}>Hapus</button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h3>Daftar Rute ({list.length})</h3>
+      {list.length === 0 ? (
+        <div style={{
+          background: "#fef3c7", color: "#92400e", padding: 12, borderRadius: 8,
+          fontSize: ".85rem", display: "flex", alignItems: "flex-start", gap: 8,
+        }}>
+          <IconAlert size={16} />
+          <span>Tabel rute kosong. Klik <b>Refresh</b> atau jalankan migrasi/seeder backend.</span>
+        </div>
+      ) : (
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Kode</th><th>Nama Trayek</th><th>Panjang</th><th>Warna</th><th>Aksi</th></tr>
+          </thead>
+          <tbody>
+            {list.map((r) => (
+              <tr key={r.id_rute} style={editing === r.id_rute ? { background: "#dbeafe" } : {}}>
+                <td>{r.id_rute}</td>
+                <td><b>{r.kode_trayek}</b></td>
+                <td>{r.nama_trayek}</td>
+                <td>{r.panjang_km != null ? `${r.panjang_km} km` : "—"}</td>
+                <td>
+                  <span style={{ display: "inline-block", width: 24, height: 12, background: r.warna_peta, borderRadius: 3 }} />
+                  <span style={{ marginLeft: 6, fontFamily: "monospace", fontSize: ".75rem" }}>{r.warna_peta}</span>
+                </td>
+                <td>
+                  <div className="actions">
+                    <button onClick={() => onEdit(r)} style={{ background: "#2563eb", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <IconEdit size={12} /> Edit
+                    </button>
+                    <button onClick={() => onDelete(r.id_rute)} style={{ background: "#dc2626", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      <IconTrash size={12} /> Hapus
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </>
   );
 }

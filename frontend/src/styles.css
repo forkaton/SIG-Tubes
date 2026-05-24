@@ -1,3 +1,5 @@
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
 * { box-sizing: border-box; }
 
 html, body, #root {
@@ -101,6 +103,9 @@ input, select, textarea { font-family: inherit; }
   display: inline-block; padding: 1px 6px; border-radius: 4px;
   font-size: 0.7rem; font-weight: 600;
 }
+.badge-beroperasi       { background: #dcfce7; color: #166534; }
+.badge-tidak-beroperasi { background: #fee2e2; color: #991b1b; }
+/* legacy (untuk row lama yang belum migrasi) */
 .badge-baik         { background: #dcfce7; color: #166534; }
 .badge-rusak        { background: #fef3c7; color: #92400e; }
 .badge-terbengkalai { background: #fee2e2; color: #991b1b; }
