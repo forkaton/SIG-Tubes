@@ -235,23 +235,3 @@ SIG_TUBES/
 ```
 
 ---
-
-## Catatan Teknis
-
-- **Raw SQL only**: setiap router menggunakan `db.execute(text("..."))` untuk
-  mengeksekusi kueri spasial PostGIS (`ST_DWithin`, `ST_Distance`, `ST_AsGeoJSON`,
-  `ST_SetSRID(ST_MakePoint(...))`). GeoAlchemy2 tidak diperlukan.
-- **Auto-seed idempoten**: seeder mengecek `COUNT(*)` lebih dulu — kalau tabel
-  sudah berisi data, ia melompat. Restart backend aman.
-- **OSM fragmented geometry handling**: Seeder mengelompokkan fitur OSM per `kode_trayek`
-  (fallback ke `ref`, `name`, `@id`), lalu menggabungkan LineString terpotong dengan
-  `ST_Multi(ST_LineMerge(ST_Collect(...)))`. Kolom `geometri_jalur` generik
-  `GEOMETRY(Geometry, 4326)` tanpa CHECK, menerima LineString atau MultiLineString.
-  Frontend components (`RutePicker`, `HaltePicker`) mendeteksi dan render keduanya.
-- **OSRM**: memakai server publik `router.project-osrm.org` (rate-limited) untuk
-  snap-to-road multi-waypoint. Admin dapat klik beberapa kali untuk menambah waypoint.
-  Untuk produksi, pertimbangkan self-host OSRM atau alternatif.
-- **GeoJSON konvensi**: koordinat `[longitude, latitude]` (bukan lat,lng).
-  Konversi ke Leaflet `[lat, lng]` dilakukan saat render.
-- **Promise.allSettled()**: Frontend menggunakan `allSettled` bukan `all` saat
-  reload data, agar satu endpoint gagal tidak menggagalkan seluruh data load.
