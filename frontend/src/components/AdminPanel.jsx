@@ -4,7 +4,7 @@ import HaltePicker from "./HaltePicker.jsx";
 import RutePicker  from "./RutePicker.jsx";
 import {
   IconBus, IconRoute, IconRefresh, IconBarChart, IconXCircle, IconAlert,
-  IconEdit, IconTrash, IconPlus, IconRuler, IconWand, IconLoader, IconCheckCircle,
+  IconEdit, IconTrash, IconPlus, IconRuler,
 } from "./Icons.jsx";
 
 export default function AdminPanel({ onChanged }) {
@@ -281,8 +281,6 @@ function RuteCrud({ onChanged }) {
   const [list, setList]       = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
-  const [snapping, setSnapping]   = useState(false);
-  const [snapResult, setSnapResult] = useState(null);
 
   const empty = { kode_trayek: "", nama_trayek: "", warna_peta: "#3388ff" };
   const [form, setForm]     = useState(empty);
@@ -357,25 +355,6 @@ function RuteCrud({ onChanged }) {
     catch (err) { alert(err.message); }
   }
 
-  async function onSnapAll() {
-    if (!confirm(
-      "Re-snap geometri SELURUH rute via OSRM?\n\n" +
-      "Memanggil OSRM untuk setiap rute (sekitar 1 detik/rute) dan UPDATE kolom " +
-      "geometri_jalur agar mengikuti jalan raya. Tidak menghapus data."
-    )) return;
-    setSnapping(true);
-    setSnapResult(null);
-    try {
-      const result = await api.snapAllRute();
-      setSnapResult(result);
-      await reload();
-      onChanged?.();
-    } catch (err) {
-      alert("Gagal: " + err.message);
-    } finally {
-      setSnapping(false);
-    }
-  }
 
   const panjangKmEstimasi = useMemo(() => {
     if (!picker?.lineString) return null;
@@ -409,31 +388,9 @@ function RuteCrud({ onChanged }) {
           <IconBarChart size={12} /> Rute tersedia: <b>{list.length}</b>
         </span>
         <RefreshButton onClick={reload} loading={loading} />
-        <button type="button" onClick={onSnapAll} disabled={snapping}
-          style={{
-            background: snapping ? "#9ca3af" : "#7c3aed", color: "white", border: 0,
-            padding: "6px 12px", borderRadius: 6, fontSize: ".85rem",
-            display: "inline-flex", alignItems: "center", gap: 5,
-            cursor: snapping ? "wait" : "pointer",
-          }}>
-          {snapping ? <IconLoader size={14} /> : <IconWand size={14} />}
-          {snapping ? "Memanggil OSRM..." : "Re-snap Semua Rute via OSRM"}
-        </button>
       </div>
 
       <ErrorBox error={error} onRetry={reload} />
-
-      {snapResult && (
-        <div style={{
-          background: "#dcfce7", color: "#166534", padding: 12, borderRadius: 8,
-          marginTop: 12, fontSize: ".85rem",
-        }}>
-          <b style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <IconCheckCircle size={14} /> Re-snap selesai:
-          </b>{" "}
-          {snapResult.sukses} / {snapResult.total} rute berhasil disnap ke jalan raya.
-        </div>
-      )}
 
       <form onSubmit={onSubmit} style={{ background: "white", padding: 16, borderRadius: 8, marginTop: 12, marginBottom: 16 }}>
         <RutePicker
