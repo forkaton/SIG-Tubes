@@ -3,9 +3,25 @@ import MapView from "./components/MapView.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
 import { api } from "./api.js";
+import { IconMenu, IconX, IconSun, IconMoon } from "./components/Icons.jsx";
 
 export default function App() {
   const [view, setView]               = useState("map");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [theme, setTheme]             = useState(() => {
+    // Load theme dari localStorage atau default ke dark
+    return localStorage.getItem("theme") || "dark";
+  });
+
+  // Apply theme ke document
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === "dark" ? "light" : "dark");
+  };
 
   // Data master
   const [ruteList, setRuteList]       = useState([]);
@@ -96,12 +112,22 @@ export default function App() {
         <nav className="nav">
           <button className={view === "map" ? "active" : ""}   onClick={() => setView("map")}>Peta</button>
           <button className={view === "admin" ? "active" : ""} onClick={() => setView("admin")}>Admin CRUD</button>
+          <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
+            {theme === "dark" ? <IconSun size={20} /> : <IconMoon size={20} />}
+          </button>
         </nav>
       </header>
 
       {view === "map" ? (
         <div className="body">
+          {/* Overlay untuk menutup sidebar di mobile */}
+          <div 
+            className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
+            onClick={() => setSidebarOpen(false)}
+          />
+          
           <Sidebar
+            className={sidebarOpen ? 'open' : ''}
             ruteList={ruteList}
             selectedRute={selectedRute}
             onToggleRute={toggleRute}
@@ -114,6 +140,16 @@ export default function App() {
             radiusResult={radiusResult}
             onClearRadius={() => setRadiusResult(null)}
           />
+
+          {/* Mobile toggle button */}
+          <button 
+            className="mobile-sidebar-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle sidebar"
+          >
+            {sidebarOpen ? <IconX size={24} /> : <IconMenu size={24} />}
+          </button>
+
           <div className="map-area">
             <MapView
               ruteFc={ruteFc}
@@ -124,6 +160,7 @@ export default function App() {
               showRusak={showRusak}
               radiusResult={radiusResult}
               onMapClick={searchRadiusAt}
+              theme={theme}
             />
             <div className="legend">
               <h3>Legenda Halte</h3>

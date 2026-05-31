@@ -28,9 +28,9 @@ function busStopPinIcon(color) {
 
 function searchPinIcon() {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='34' height='46' viewBox='0 0 34 46'>
-    <path d='M17 0C7.6 0 0 7.6 0 17c0 12.75 17 29 17 29s17-16.25 17-29C34 7.6 26.4 0 17 0z' fill='#1e3a8a' stroke='white' stroke-width='2.5'/>
+    <path d='M17 0C7.6 0 0 7.6 0 17c0 12.75 17 29 17 29s17-16.25 17-29C34 7.6 26.4 0 17 0z' fill='#f59e0b' stroke='white' stroke-width='2.5'/>
     <circle cx='17' cy='17' r='9' fill='white'/>
-    <circle cx='17' cy='17' r='5' fill='#1e3a8a'/>
+    <circle cx='17' cy='17' r='5' fill='#f59e0b'/>
   </svg>`;
   return new L.Icon({
     iconUrl:     "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
@@ -59,6 +59,7 @@ export default function MapView({
   ruteFc, halteFc, selectedRute,
   showHalte = true, showRute = true, showRusak = true,
   radiusResult, onMapClick,
+  theme = "dark",
 }) {
   // Rute: tergantung selectedRute + showRute
   const ruteFiltered = useMemo(() => ({
@@ -82,10 +83,17 @@ export default function MapView({
 
   return (
     <MapContainer center={PEKANBARU_CENTER} zoom={12} scrollWheelZoom style={{ cursor: "crosshair" }}>
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      {theme === "dark" ? (
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | &copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        />
+      ) : (
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+      )}
 
       <ClickToSearch onMapClick={onMapClick} />
 
@@ -140,7 +148,7 @@ export default function MapView({
           <Circle
             center={[radiusResult.lat, radiusResult.lng]}
             radius={radiusResult.radius}
-            pathOptions={{ color: "#1e3a8a", fillOpacity: 0.1, weight: 2, dashArray: "4 6" }}
+            pathOptions={{ color: "#f59e0b", fillOpacity: 0.15, weight: 2, dashArray: "4 6" }}
           />
           <Marker position={[radiusResult.lat, radiusResult.lng]} icon={ICON_SEARCH}>
             <Popup>

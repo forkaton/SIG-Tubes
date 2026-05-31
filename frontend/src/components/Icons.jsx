@@ -1,8 +1,6 @@
 /**
- * Icons.jsx — SVG icon set (inline, Lucide-style, MIT)
- *
- * Pakai: <IconMapPin size={16} /> atau <IconBus size={20} color="#dc2626" />
- * Default size=16, color="currentColor" (mengikuti warna teks parent).
+ * Icons.jsx — Custom SVG Icons (Lucide-style)
+ * Kembali ke custom SVG karena lebih stabil
  */
 import React from "react";
 
@@ -229,5 +227,47 @@ export const IconPin = (p) => (
   <Svg {...p}>
     <line x1="12" y1="17" x2="12" y2="22" />
     <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V17z" />
+  </Svg>
+);
+
+// Icon untuk mobile
+export const IconMenu = (p) => (
+  <Svg {...p}>
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </Svg>
+);
+
+export const IconChevronLeft = (p) => (
+  <Svg {...p}>
+    <polyline points="15 18 9 12 15 6" />
+  </Svg>
+);
+
+export const IconChevronRight = (p) => (
+  <Svg {...p}>
+    <polyline points="9 18 15 12 9 6" />
+  </Svg>
+);
+
+// Icon untuk theme toggle
+export const IconSun = (p) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="5" />
+    <line x1="12" y1="1" x2="12" y2="3" />
+    <line x1="12" y1="21" x2="12" y2="23" />
+    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+    <line x1="1" y1="12" x2="3" y2="12" />
+    <line x1="21" y1="12" x2="23" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+  </Svg>
+);
+
+export const IconMoon = (p) => (
+  <Svg {...p}>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
   </Svg>
 );

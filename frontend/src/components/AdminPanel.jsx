@@ -31,9 +31,18 @@ export default function AdminPanel({ onChanged }) {
 
 function btnStyle(active) {
   return {
-    background: active ? "#1e3a8a" : "#6b7280",
-    color: "white", padding: "8px 14px", border: 0, borderRadius: 6, fontWeight: 600,
-    display: "inline-flex", alignItems: "center", gap: 6,
+    background: active ? "#f59e0b" : "#1a1a1a",
+    color: active ? "#1a1a1a" : "#e0e0e0", 
+    padding: "8px 14px", 
+    border: 0, 
+    borderRadius: 12, 
+    fontWeight: 600,
+    display: "inline-flex", 
+    alignItems: "center", 
+    gap: 6,
+    boxShadow: active 
+      ? "inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -4px -4px 8px rgba(40, 40, 40, 0.1)"
+      : "6px 6px 12px rgba(0, 0, 0, 0.6), -6px -6px 12px rgba(40, 40, 40, 0.1)",
   };
 }
 
@@ -41,9 +50,16 @@ function RefreshButton({ onClick, loading }) {
   return (
     <button type="button" onClick={onClick} disabled={loading}
       style={{
-        background: "#0f766e", color: "white", border: 0,
-        padding: "6px 12px", borderRadius: 6, fontSize: ".85rem",
-        display: "inline-flex", alignItems: "center", gap: 5,
+        background: "#1a1a1a", 
+        color: "#10b981", 
+        border: 0,
+        padding: "6px 12px", 
+        borderRadius: 12, 
+        fontSize: ".85rem",
+        display: "inline-flex", 
+        alignItems: "center", 
+        gap: 5,
+        boxShadow: "6px 6px 12px rgba(0, 0, 0, 0.6), -6px -6px 12px rgba(40, 40, 40, 0.1)",
       }}>
       {loading ? <IconLoader size={14} /> : <IconRefresh size={14} />}
       {loading ? "Memuat..." : "Refresh"}
@@ -55,15 +71,26 @@ function ErrorBox({ error, onRetry }) {
   if (!error) return null;
   return (
     <div style={{
-      background: "#fee2e2", color: "#991b1b", padding: 12, borderRadius: 8,
-      marginBottom: 12, fontSize: ".85rem",
+      background: "#1a1a1a", 
+      color: "#ef4444", 
+      padding: 12, 
+      borderRadius: 12,
+      marginBottom: 12, 
+      fontSize: ".85rem",
+      boxShadow: "inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -4px -4px 8px rgba(40, 40, 40, 0.1)",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
         <IconXCircle size={16} /> <b>Error memuat data:</b> {error}
       </div>
       <button onClick={onRetry} style={{
-        marginTop: 8, background: "#dc2626", color: "white", border: 0,
-        padding: "6px 12px", borderRadius: 6, fontSize: ".85rem",
+        marginTop: 8, 
+        background: "#1a1a1a", 
+        color: "#ef4444", 
+        border: 0,
+        padding: "6px 12px", 
+        borderRadius: 10, 
+        fontSize: ".85rem",
+        boxShadow: "4px 4px 8px rgba(0, 0, 0, 0.5), -4px -4px 8px rgba(40, 40, 40, 0.1)",
       }}>Coba Ulang</button>
     </div>
   );
@@ -161,8 +188,15 @@ function HalteCrud({ onChanged }) {
           {editing ? <><IconEdit size={16} /> Edit Halte #{editing}</> : <><IconPlus size={16} /> Tambah Halte Baru</>}
         </h3>
         <span style={{
-          background: "#dbeafe", color: "#1e3a8a", padding: "4px 10px",
-          borderRadius: 999, fontSize: ".8rem", display: "inline-flex", alignItems: "center", gap: 4,
+          background: "#1a1a1a", 
+          color: "#f59e0b", 
+          padding: "4px 10px",
+          borderRadius: 12, 
+          fontSize: ".8rem", 
+          display: "inline-flex", 
+          alignItems: "center", 
+          gap: 4,
+          boxShadow: "inset 3px 3px 6px rgba(0, 0, 0, 0.4), inset -3px -3px 6px rgba(40, 40, 40, 0.05)",
         }}>
           <IconBarChart size={12} /> Rute: <b>{ruteList.length}</b> · Halte: <b>{halteList.length}</b>
         </span>
@@ -171,11 +205,11 @@ function HalteCrud({ onChanged }) {
 
       <ErrorBox error={error} onRetry={reload} />
 
-      <form onSubmit={onSubmit} style={{ background: "white", padding: 16, borderRadius: 8, marginTop: 12, marginBottom: 16 }}>
+      <form onSubmit={onSubmit} style={{ background: "var(--bg-secondary)", padding: 16, borderRadius: 16, marginTop: 12, marginBottom: 16, boxShadow: "var(--shadow-outer)" }}>
         {/* Pilih rute DULU supaya picker tahu restriksi */}
         <div style={{ marginBottom: 10 }}>
-          <label><b>Rute</b> ({ruteList.length} tersedia)</label>
-          <select style={{ width: "100%", padding: 6 }}
+          <label style={{ color: "var(--text-secondary)", fontSize: ".8rem", display: "block", marginBottom: 4 }}><b>Rute</b> ({ruteList.length} tersedia)</label>
+          <select style={{ width: "100%", padding: 8, background: "var(--bg-secondary)", color: "var(--text-primary)", border: "none", borderRadius: 10, boxShadow: "var(--shadow-inner)" }}
             value={form.id_rute_pelintas}
             onChange={(e) => setForm({ ...form, id_rute_pelintas: e.target.value })}>
             <option value="">— Tanpa rute (bebas klik di mana saja) —</option>
@@ -197,14 +231,14 @@ function HalteCrud({ onChanged }) {
 
         <div className="form-grid" style={{ marginTop: 12 }}>
           <div className="full">
-            <label>Nama Halte</label>
-            <input style={{ width: "100%", padding: 6 }} required
+            <label style={{ color: "var(--text-secondary)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Nama Halte</label>
+            <input style={{ width: "100%", padding: 8, background: "var(--bg-secondary)", color: "var(--text-primary)", border: "none", borderRadius: 10, boxShadow: "var(--shadow-inner)" }} required
               value={form.nama_halte}
               onChange={(e) => setForm({ ...form, nama_halte: e.target.value })} />
           </div>
           <div>
-            <label>Kondisi</label>
-            <select style={{ width: "100%", padding: 6 }}
+            <label style={{ color: "var(--text-secondary)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Kondisi</label>
+            <select style={{ width: "100%", padding: 8, background: "var(--bg-secondary)", color: "var(--text-primary)", border: "none", borderRadius: 10, boxShadow: "var(--shadow-inner)" }}
               value={form.kondisi_fisik}
               onChange={(e) => setForm({ ...form, kondisi_fisik: e.target.value })}>
               <option value="Beroperasi">Beroperasi</option>
@@ -212,20 +246,20 @@ function HalteCrud({ onChanged }) {
             </select>
           </div>
           <div className="full">
-            <label>Keterangan</label>
-            <textarea rows={2} style={{ width: "100%", padding: 6 }}
+            <label style={{ color: "var(--text-secondary)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Keterangan</label>
+            <textarea rows={2} style={{ width: "100%", padding: 8, background: "var(--bg-secondary)", color: "var(--text-primary)", border: "none", borderRadius: 10, boxShadow: "var(--shadow-inner)" }}
               value={form.keterangan}
               onChange={(e) => setForm({ ...form, keterangan: e.target.value })} />
           </div>
         </div>
 
         <button type="submit"
-          style={{ background: "#1e3a8a", color: "white", padding: "8px 14px", border: 0, borderRadius: 6, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+          style={{ background: "var(--bg-secondary)", color: "var(--accent-color)", padding: "10px 18px", border: 0, borderRadius: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, boxShadow: "var(--shadow-outer-sm)" }}>
           {editing ? <><IconEdit size={14} /> Simpan Perubahan</> : <><IconPlus size={14} /> Tambah Halte</>}
         </button>
         {editing && (
           <button type="button" onClick={onCancel}
-            style={{ marginLeft: 8, background: "#6b7280", color: "white", padding: "8px 14px", border: 0, borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            style={{ marginLeft: 8, background: "var(--bg-secondary)", color: "var(--text-secondary)", padding: "10px 18px", border: 0, borderRadius: 12, display: "inline-flex", alignItems: "center", gap: 6, boxShadow: "var(--shadow-outer-sm)" }}>
             <IconXCircle size={14} /> Batal
           </button>
         )}
@@ -233,9 +267,12 @@ function HalteCrud({ onChanged }) {
 
       <h3>Daftar Halte ({halteList.length})</h3>
       {halteList.length === 0 ? (
-        <div style={{
-          background: "#fef3c7", color: "#92400e", padding: 12, borderRadius: 8,
-          fontSize: ".85rem", display: "flex", alignItems: "flex-start", gap: 8,
+        <div className="warning-box" style={{
+          padding: 12, 
+          fontSize: ".85rem", 
+          display: "flex", 
+          alignItems: "flex-start", 
+          gap: 8,
         }}>
           <IconAlert size={16} />
           <span>Tabel halte kosong. Klik <b>Refresh</b> atau jalankan migrasi/seeder backend.</span>
@@ -250,17 +287,29 @@ function HalteCrud({ onChanged }) {
               <tr key={h.id_halte}>
                 <td>{h.id_halte}</td>
                 <td>{h.nama_halte}</td>
-                <td>{h.kode_trayek || <em style={{ color: "#9ca3af" }}>—</em>}</td>
+                <td>{h.kode_trayek || <em style={{ color: "#555" }}>—</em>}</td>
                 <td><span className={`badge badge-${(h.kondisi_fisik || "").toLowerCase().replace(/\s+/g, "-")}`}>{h.kondisi_fisik}</span></td>
                 <td style={{ fontFamily: "monospace", fontSize: ".75rem" }}>
                   {h.latitude.toFixed(5)}, {h.longitude.toFixed(5)}
                 </td>
                 <td>
                   <div className="actions">
-                    <button onClick={() => onEdit(h)} style={{ background: "#2563eb", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <button onClick={() => onEdit(h)} style={{ 
+                      background: "#1a1a1a", 
+                      color: "#3b82f6",
+                      display: "inline-flex", 
+                      alignItems: "center", 
+                      gap: 3 
+                    }}>
                       <IconEdit size={12} /> Edit
                     </button>
-                    <button onClick={() => onDelete(h.id_halte)} style={{ background: "#dc2626", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <button onClick={() => onDelete(h.id_halte)} style={{ 
+                      background: "#1a1a1a", 
+                      color: "#ef4444",
+                      display: "inline-flex", 
+                      alignItems: "center", 
+                      gap: 3 
+                    }}>
                       <IconTrash size={12} /> Hapus
                     </button>
                   </div>
@@ -382,8 +431,15 @@ function RuteCrud({ onChanged }) {
             : <><IconPlus size={16} /> Tambah Rute Baru</>}
         </h3>
         <span style={{
-          background: "#dbeafe", color: "#1e3a8a", padding: "4px 10px",
-          borderRadius: 999, fontSize: ".8rem", display: "inline-flex", alignItems: "center", gap: 4,
+          background: "#1a1a1a", 
+          color: "#f59e0b", 
+          padding: "4px 10px",
+          borderRadius: 12, 
+          fontSize: ".8rem", 
+          display: "inline-flex", 
+          alignItems: "center", 
+          gap: 4,
+          boxShadow: "inset 3px 3px 6px rgba(0, 0, 0, 0.4), inset -3px -3px 6px rgba(40, 40, 40, 0.05)",
         }}>
           <IconBarChart size={12} /> Rute tersedia: <b>{list.length}</b>
         </span>
@@ -392,7 +448,7 @@ function RuteCrud({ onChanged }) {
 
       <ErrorBox error={error} onRetry={reload} />
 
-      <form onSubmit={onSubmit} style={{ background: "white", padding: 16, borderRadius: 8, marginTop: 12, marginBottom: 16 }}>
+      <form onSubmit={onSubmit} style={{ background: "var(--bg-secondary)", padding: 16, borderRadius: 16, marginTop: 12, marginBottom: 16, boxShadow: "var(--shadow-outer)" }}>
         <RutePicker
           value={picker}
           onChange={setPicker}
@@ -403,7 +459,14 @@ function RuteCrud({ onChanged }) {
         />
 
         {panjangKmEstimasi && (
-          <div style={{ margin: "8px 0", fontSize: ".85rem", color: "#1e3a8a", display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ 
+            margin: "8px 0", 
+            fontSize: ".85rem", 
+            color: "var(--accent-color)", 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 6 
+          }}>
             <IconRuler size={14} /> Panjang rute baru: <b>{panjangKmEstimasi} km</b> ·
             {" "}<b>{picker.lineString.coordinates.length}</b> titik geometri ·
             {" "}<b>{picker.waypoints?.length || 0}</b> waypoint
@@ -412,20 +475,20 @@ function RuteCrud({ onChanged }) {
 
         <div className="form-grid" style={{ marginTop: 12 }}>
           <div>
-            <label>Kode Trayek</label>
-            <input required maxLength={10} style={{ width: "100%", padding: 6 }}
+            <label style={{ color: "var(--text-secondary)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Kode Trayek</label>
+            <input required maxLength={10} style={{ width: "100%", padding: 8, background: "var(--bg-secondary)", color: "var(--text-primary)", border: "none", borderRadius: 10, boxShadow: "var(--shadow-inner)" }}
               placeholder="K05" value={form.kode_trayek}
               onChange={(e) => setForm({ ...form, kode_trayek: e.target.value.toUpperCase() })} />
           </div>
           <div>
-            <label>Warna Highlight</label>
-            <input type="color" style={{ width: "100%", padding: 2, height: 34 }}
+            <label style={{ color: "var(--text-secondary)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Warna Highlight</label>
+            <input type="color" style={{ width: "100%", padding: 2, height: 38, background: "var(--bg-secondary)", border: "none", borderRadius: 10, boxShadow: "var(--shadow-inner)", cursor: "pointer" }}
               value={form.warna_peta}
               onChange={(e) => setForm({ ...form, warna_peta: e.target.value })} />
           </div>
           <div className="full">
-            <label>Nama Trayek</label>
-            <input required maxLength={150} style={{ width: "100%", padding: 6 }}
+            <label style={{ color: "var(--text-secondary)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Nama Trayek</label>
+            <input required maxLength={150} style={{ width: "100%", padding: 8, background: "var(--bg-secondary)", color: "var(--text-primary)", border: "none", borderRadius: 10, boxShadow: "var(--shadow-inner)" }}
               placeholder="Rute 05 (Awal - Akhir)" value={form.nama_trayek}
               onChange={(e) => setForm({ ...form, nama_trayek: e.target.value })} />
           </div>
@@ -434,10 +497,13 @@ function RuteCrud({ onChanged }) {
         <button type="submit"
           disabled={!isEdit && !picker?.lineString}
           style={{
-            background: (isEdit || picker?.lineString) ? "#1e3a8a" : "#9ca3af",
-            color: "white", padding: "8px 14px", border: 0, borderRadius: 6, fontWeight: 600,
+            background: "var(--bg-secondary)",
+            color: (isEdit || picker?.lineString) ? "var(--accent-color)" : "var(--text-muted)",
+            padding: "10px 18px", border: 0, borderRadius: 12, fontWeight: 600,
             cursor: (isEdit || picker?.lineString) ? "pointer" : "not-allowed",
             display: "inline-flex", alignItems: "center", gap: 6,
+            boxShadow: "var(--shadow-outer-sm)",
+            opacity: (!isEdit && !picker?.lineString) ? 0.5 : 1,
           }}>
           {isEdit
             ? <><IconEdit size={14} /> Simpan Perubahan</>
@@ -445,7 +511,7 @@ function RuteCrud({ onChanged }) {
         </button>
         {isEdit && (
           <button type="button" onClick={onCancel}
-            style={{ marginLeft: 8, background: "#6b7280", color: "white", padding: "8px 14px", border: 0, borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 6 }}>
+            style={{ marginLeft: 8, background: "var(--bg-secondary)", color: "var(--text-secondary)", padding: "10px 18px", border: 0, borderRadius: 12, display: "inline-flex", alignItems: "center", gap: 6, boxShadow: "var(--shadow-outer-sm)" }}>
             <IconXCircle size={14} /> Batal
           </button>
         )}
@@ -453,9 +519,12 @@ function RuteCrud({ onChanged }) {
 
       <h3>Daftar Rute ({list.length})</h3>
       {list.length === 0 ? (
-        <div style={{
-          background: "#fef3c7", color: "#92400e", padding: 12, borderRadius: 8,
-          fontSize: ".85rem", display: "flex", alignItems: "flex-start", gap: 8,
+        <div className="warning-box" style={{
+          padding: 12, 
+          fontSize: ".85rem", 
+          display: "flex", 
+          alignItems: "flex-start", 
+          gap: 8,
         }}>
           <IconAlert size={16} />
           <span>Tabel rute kosong. Klik <b>Refresh</b> atau jalankan migrasi/seeder backend.</span>
@@ -467,7 +536,7 @@ function RuteCrud({ onChanged }) {
           </thead>
           <tbody>
             {list.map((r) => (
-              <tr key={r.id_rute} style={editing === r.id_rute ? { background: "#dbeafe" } : {}}>
+              <tr key={r.id_rute} style={editing === r.id_rute ? { background: "#2a2a2a" } : {}}>
                 <td>{r.id_rute}</td>
                 <td><b>{r.kode_trayek}</b></td>
                 <td>{r.nama_trayek}</td>
@@ -478,10 +547,22 @@ function RuteCrud({ onChanged }) {
                 </td>
                 <td>
                   <div className="actions">
-                    <button onClick={() => onEdit(r)} style={{ background: "#2563eb", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <button onClick={() => onEdit(r)} style={{ 
+                      background: "#1a1a1a", 
+                      color: "#3b82f6",
+                      display: "inline-flex", 
+                      alignItems: "center", 
+                      gap: 3 
+                    }}>
                       <IconEdit size={12} /> Edit
                     </button>
-                    <button onClick={() => onDelete(r.id_rute)} style={{ background: "#dc2626", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                    <button onClick={() => onDelete(r.id_rute)} style={{ 
+                      background: "#1a1a1a", 
+                      color: "#ef4444",
+                      display: "inline-flex", 
+                      alignItems: "center", 
+                      gap: 3 
+                    }}>
                       <IconTrash size={12} /> Hapus
                     </button>
                   </div>

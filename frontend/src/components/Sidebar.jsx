@@ -5,6 +5,7 @@ import {
 } from "./Icons.jsx";
 
 export default function Sidebar({
+  className = "",
   ruteList,
   selectedRute,
   onToggleRute,
@@ -44,17 +45,21 @@ export default function Sidebar({
   const allChecked = ruteList.length > 0 && selectedRute.size === ruteList.length;
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${className}`}>
       {/* ===== Pencarian Halte Terdekat ===== */}
       <div className="card">
         <h2><IconSearch size={14} /> Pencarian Halte Terdekat</h2>
 
         <div style={{
-          background: "#dbeafe", border: "1px solid #93c5fd", padding: 8,
-          borderRadius: 6, fontSize: ".78rem", marginBottom: 8, color: "#1e3a8a",
+          background: "var(--bg-tertiary)", 
+          border: "1px solid var(--border-color)", 
+          padding: 8,
+          borderRadius: 12, fontSize: ".78rem", marginBottom: 8, 
+          color: "var(--text-primary)",
           display: "flex", gap: 6, alignItems: "flex-start",
+          boxShadow: "var(--shadow-inner-sm)",
         }}>
-          <IconMousePointer size={16} style={{ marginTop: 1 }} />
+          <IconMousePointer size={16} style={{ marginTop: 1, color: "var(--accent-color)" }} />
           <span><b>Klik di peta</b> untuk menentukan lokasi referensi. Lingkaran radius dan daftar halte terdekat akan tampil otomatis.</span>
         </div>
 
@@ -76,11 +81,15 @@ export default function Sidebar({
 
         {radiusResult && (
           <div style={{
-            marginTop: 8, padding: 8, background: "#f0f9ff", borderRadius: 6,
+            marginTop: 8, padding: 8, 
+            background: "var(--bg-tertiary)", 
+            borderRadius: 12,
             fontSize: ".78rem", fontFamily: "monospace",
             display: "flex", alignItems: "center", gap: 6,
+            boxShadow: "var(--shadow-inner-sm)",
+            color: "var(--text-primary)",
           }}>
-            <IconMapPin size={14} color="#1e3a8a" />
+            <IconMapPin size={14} color="var(--accent-color)" />
             {radiusResult.lat.toFixed(6)}, {radiusResult.lng.toFixed(6)}
           </div>
         )}
@@ -91,7 +100,7 @@ export default function Sidebar({
         <div className="card">
           <h2>Hasil ({radiusResult.halte?.length ?? 0} halte)</h2>
           {!radiusResult.halte?.length ? (
-            <div style={{ fontSize: ".8rem", color: "#6b7280" }}>
+            <div style={{ fontSize: ".8rem", color: "var(--text-muted)" }}>
               Tidak ada halte dalam radius {radiusResult.radius} m. Coba perbesar radius.
             </div>
           ) : (
@@ -113,19 +122,19 @@ export default function Sidebar({
         <label className="checkbox-row">
           <input type="checkbox" checked={showRute}
                  onChange={(e) => onToggleShowRute(e.target.checked)} />
-          <IconRoute size={14} color="#1e3a8a" />
+          <IconRoute size={14} color="#f59e0b" />
           <span>Tampilkan Rute (LineString)</span>
         </label>
         <label className="checkbox-row">
           <input type="checkbox" checked={showHalte}
                  onChange={(e) => onToggleShowHalte(e.target.checked)} />
-          <IconBus size={14} color="#16a34a" />
+          <IconBus size={14} color="#10b981" />
           <span>Tampilkan Halte (Point)</span>
         </label>
         <label className="checkbox-row">
           <input type="checkbox" checked={showRusak}
                  onChange={(e) => onToggleRusak(e.target.checked)} />
-          <IconAlert size={14} color="#dc2626" />
+          <IconAlert size={14} color="#ef4444" />
           <span>Tampilkan halte tidak beroperasi</span>
         </label>
       </div>
