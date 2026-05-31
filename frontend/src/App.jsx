@@ -10,7 +10,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme]             = useState(() => {
     // Load theme dari localStorage atau default ke dark
-    return localStorage.getItem("theme") || "dark";
+    return localStorage.getItem("theme") || "light";
   });
 
   // Apply theme ke document
