@@ -10,8 +10,6 @@ function badgeClass(k) {
   return k === "Beroperasi" ? "badge badge-beroperasi" : "badge badge-tidak-beroperasi";
 }
 
-/** Custom SVG bus-stop pin sebagai data URI — definitely terlihat,
- *  tampilan profesional konsisten lintas browser. */
 function busStopPinIcon(color) {
   const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='30' height='42' viewBox='0 0 30 42'>
     <path d='M15 0C6.72 0 0 6.72 0 15c0 11.25 15 27 15 27s15-15.75 15-27C30 6.72 23.28 0 15 0z' fill='${color}' stroke='white' stroke-width='2'/>
@@ -40,11 +38,28 @@ function searchPinIcon() {
   });
 }
 
+/** Pin huruf (A / B) untuk titik trip */
+function letterPinIcon(letter, color) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='34' height='46' viewBox='0 0 34 46'>
+    <path d='M17 0C7.6 0 0 7.6 0 17c0 12.75 17 29 17 29s17-16.25 17-29C34 7.6 26.4 0 17 0z' fill='${color}' stroke='white' stroke-width='2.5'/>
+    <circle cx='17' cy='17' r='10' fill='white'/>
+    <text x='17' y='22' font-size='14' font-weight='bold' text-anchor='middle' fill='${color}' font-family='Arial,sans-serif'>${letter}</text>
+  </svg>`;
+  return new L.Icon({
+    iconUrl:     "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    iconSize:    [34, 46],
+    iconAnchor:  [17, 46],
+    popupAnchor: [0, -42],
+  });
+}
+
 const ICONS = {
   "Beroperasi":       busStopPinIcon("#16a34a"),
   "Tidak Beroperasi": busStopPinIcon("#dc2626"),
 };
 const ICON_SEARCH = searchPinIcon();
+const ICON_A = letterPinIcon("A", "#16a34a");
+const ICON_B = letterPinIcon("B", "#dc2626");
 
 function ClickToSearch({ onMapClick }) {
   useMapEvents({
@@ -59,9 +74,9 @@ export default function MapView({
   ruteFc, halteFc, selectedRute,
   showHalte = true, showRute = true, showRusak = true,
   radiusResult, onMapClick,
+  mode = "radius", tripA, tripB, tripResult,
   theme = "dark",
 }) {
-  // Rute: tergantung selectedRute + showRute
   const ruteFiltered = useMemo(() => ({
     type: "FeatureCollection",
     features: showRute
@@ -69,7 +84,6 @@ export default function MapView({
       : [],
   }), [ruteFc, selectedRute, showRute]);
 
-  // Halte: HANYA tergantung showHalte + showRusak (INDEPENDEN dari filter rute)
   const halteFiltered = useMemo(() => {
     if (!showHalte) return [];
     return halteFc.features.filter((f) => {
@@ -80,6 +94,7 @@ export default function MapView({
   }, [halteFc, showHalte, showRusak]);
 
   const ruteKey = `rute-${ruteFc.features.length}-${showRute}-${Array.from(selectedRute).sort().join(",")}`;
+  const rideColor = tripResult?.halte_naik?.warna_peta || "#2563eb";
 
   return (
     <MapContainer center={PEKANBARU_CENTER} zoom={12} scrollWheelZoom style={{ cursor: "crosshair" }}>
@@ -142,8 +157,8 @@ export default function MapView({
         );
       })}
 
-      {/* === Lingkaran radius === */}
-      {radiusResult && (
+      {/* === Lingkaran radius (mode radius) === */}
+      {mode === "radius" && radiusResult && (
         <>
           <Circle
             center={[radiusResult.lat, radiusResult.lng]}
@@ -162,6 +177,29 @@ export default function MapView({
             </Popup>
           </Marker>
         </>
+      )}
+
+      {/* === Trip A->B (mode trip) === */}
+      {mode === "trip" && tripResult?.ride_geojson && (
+        <>
+          {/* halo putih di bawah agar jalur menonjol */}
+          <GeoJSON key={`ride-halo-${tripResult.halte_naik?.id_halte}-${tripResult.halte_turun?.id_halte}`}
+                   data={tripResult.ride_geojson}
+                   style={{ color: "#ffffff", weight: 11, opacity: 0.9 }} />
+          <GeoJSON key={`ride-${tripResult.halte_naik?.id_halte}-${tripResult.halte_turun?.id_halte}`}
+                   data={tripResult.ride_geojson}
+                   style={{ color: rideColor, weight: 6, opacity: 1 }} />
+        </>
+      )}
+      {mode === "trip" && tripA && (
+        <Marker position={[tripA.lat, tripA.lng]} icon={ICON_A}>
+          <Popup><b>Titik Asal (A)</b></Popup>
+        </Marker>
+      )}
+      {mode === "trip" && tripB && (
+        <Marker position={[tripB.lat, tripB.lng]} icon={ICON_B}>
+          <Popup><b>Titik Tujuan (B)</b></Popup>
+        </Marker>
       )}
     </MapContainer>
   );

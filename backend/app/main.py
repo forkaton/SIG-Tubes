@@ -16,7 +16,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
-from .routers import halte, rute
+from .routers import halte, rute, trip
 from .seeder import reseed_all, run_seeders
 
 logging.basicConfig(
@@ -68,6 +68,7 @@ app.add_middleware(
 
 app.include_router(halte.router)
 app.include_router(rute.router)
+app.include_router(trip.router)
 
 
 @app.get("/", tags=["Meta"])

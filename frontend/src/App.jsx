@@ -9,11 +9,9 @@ export default function App() {
   const [view, setView]               = useState("map");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme]             = useState(() => {
-    // Load theme dari localStorage atau default ke dark
     return localStorage.getItem("theme") || "light";
   });
 
-  // Apply theme ke document
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem("theme", theme);
@@ -34,19 +32,26 @@ export default function App() {
   const [showHalte, setShowHalte]         = useState(true);
   const [showRusak, setShowRusak]         = useState(true);
 
+  // Mode interaksi peta: "radius" (cari halte) atau "trip" (rute A->B)
+  const [mode, setMode] = useState("radius");
+
   // Pencarian radius via klik peta
   const [radius, setRadius]               = useState(500);
-  const [radiusResult, setRadiusResult]   = useState(null);   // { lat, lng, radius, halte }
+  const [radiusResult, setRadiusResult]   = useState(null);
+
+  // Trip planner A->B
+  const [tripA, setTripA]           = useState(null);  // { lat, lng }
+  const [tripB, setTripB]           = useState(null);
+  const [tripResult, setTripResult] = useState(null);
+  const [tripLoading, setTripLoading] = useState(false);
 
   async function reload() {
-    // Load 3 endpoint INDEPENDEN — kalau satu gagal, sisanya tetap dimuat
     const [rRes, rfRes, hfRes] = await Promise.allSettled([
       api.listRute(), api.ruteGeojsonAll(), api.halteGeojson(),
     ]);
 
     if (rRes.status === "fulfilled") {
       const r = rRes.value;
-      console.log("[App] /rute returned", r.length, "rute");
       setRuteList(r);
       setSelectedRute((prev) => {
         if (prev.size === 0) return new Set(r.map((x) => x.id_rute));
@@ -57,20 +62,10 @@ export default function App() {
     } else {
       console.error("[App] /rute gagal:", rRes.reason);
     }
-
-    if (rfRes.status === "fulfilled") {
-      console.log("[App] /rute/geojson:", rfRes.value.features?.length, "features");
-      setRuteFc(rfRes.value);
-    } else {
-      console.error("[App] /rute/geojson gagal:", rfRes.reason);
-    }
-
-    if (hfRes.status === "fulfilled") {
-      console.log("[App] /halte/geojson:", hfRes.value.features?.length, "features");
-      setHalteFc(hfRes.value);
-    } else {
-      console.error("[App] /halte/geojson gagal:", hfRes.reason);
-    }
+    if (rfRes.status === "fulfilled") setRuteFc(rfRes.value);
+    else console.error("[App] /rute/geojson gagal:", rfRes.reason);
+    if (hfRes.status === "fulfilled") setHalteFc(hfRes.value);
+    else console.error("[App] /halte/geojson gagal:", hfRes.reason);
   }
 
   useEffect(() => { reload(); }, []);
@@ -87,7 +82,7 @@ export default function App() {
     setSelectedRute(checked ? new Set(ruteList.map((r) => r.id_rute)) : new Set());
   }
 
-  /** Dipanggil saat user klik di peta utama (atau pakai GPS) */
+  // ===== Radius =====
   async function searchRadiusAt({ lat, lng }) {
     try {
       const halte = await api.halteRadius(lat, lng, radius);
@@ -97,10 +92,50 @@ export default function App() {
     }
   }
 
-  /** Re-search saat slider radius berubah, tapi titik sudah ada */
   function changeRadius(newR) {
     setRadius(newR);
     if (radiusResult) searchRadiusAt({ lat: radiusResult.lat, lng: radiusResult.lng });
+  }
+
+  // ===== Trip A->B =====
+  async function planTripTo({ lat, lng }) {
+    setTripLoading(true);
+    try {
+      const res = await api.planTrip(tripA.lat, tripA.lng, lat, lng);
+      setTripResult(res);
+    } catch (err) {
+      alert("Gagal menghitung rute: " + err.message);
+      setTripB(null);
+    } finally {
+      setTripLoading(false);
+    }
+  }
+
+  function resetTrip() {
+    setTripA(null); setTripB(null); setTripResult(null);
+  }
+
+  /** Klik peta utama — perilaku tergantung mode aktif */
+  function handleMapClick({ lat, lng }) {
+    if (mode === "trip") {
+      if (!tripA || (tripA && tripB)) {
+        setTripA({ lat, lng });
+        setTripB(null);
+        setTripResult(null);
+      } else {
+        setTripB({ lat, lng });
+        planTripTo({ lat, lng });
+      }
+    } else {
+      searchRadiusAt({ lat, lng });
+    }
+  }
+
+  function changeMode(newMode) {
+    setMode(newMode);
+    // Bersihkan state mode lain agar peta tidak tumpang tindih
+    if (newMode === "trip") { setRadiusResult(null); }
+    else { resetTrip(); }
   }
 
   return (
@@ -120,14 +155,14 @@ export default function App() {
 
       {view === "map" ? (
         <div className="body">
-          {/* Overlay untuk menutup sidebar di mobile */}
-          <div 
+          <div
             className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`}
             onClick={() => setSidebarOpen(false)}
           />
-          
+
           <Sidebar
             className={sidebarOpen ? 'open' : ''}
+            mode={mode}              onChangeMode={changeMode}
             ruteList={ruteList}
             selectedRute={selectedRute}
             onToggleRute={toggleRute}
@@ -139,10 +174,12 @@ export default function App() {
             onPickFromGPS={searchRadiusAt}
             radiusResult={radiusResult}
             onClearRadius={() => setRadiusResult(null)}
+            tripA={tripA}           tripB={tripB}
+            tripResult={tripResult} tripLoading={tripLoading}
+            onResetTrip={resetTrip}
           />
 
-          {/* Mobile toggle button */}
-          <button 
+          <button
             className="mobile-sidebar-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label="Toggle sidebar"
@@ -159,7 +196,11 @@ export default function App() {
               showRute={showRute}
               showRusak={showRusak}
               radiusResult={radiusResult}
-              onMapClick={searchRadiusAt}
+              onMapClick={handleMapClick}
+              mode={mode}
+              tripA={tripA}
+              tripB={tripB}
+              tripResult={tripResult}
               theme={theme}
             />
             <div className="legend">

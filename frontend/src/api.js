@@ -41,6 +41,12 @@ export const api = {
   createHalte:     (body)     => request("/halte",       { method: "POST",   body: JSON.stringify(body) }),
   updateHalte:     (id, body) => request(`/halte/${id}`, { method: "PUT",    body: JSON.stringify(body) }),
   deleteHalte:     (id)       => request(`/halte/${id}`, { method: "DELETE" }),
+
+  // ===== Trip Planner =====
+  planTrip:        (fromLat, fromLng, toLat, toLng) =>
+    request(buildUrl("/trip", {
+      from_lat: fromLat, from_lng: fromLng, to_lat: toLat, to_lng: toLng,
+    })),
 };
 
 /**
