@@ -17,12 +17,11 @@ from .config import settings
 IS_SERVERLESS = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
 
 if IS_SERVERLESS:
-    # Supabase pooler: pgBouncer transaction mode tidak mendukung prepared
-    # statements — matikan via prepare_threshold=None pada psycopg.
+    # Supabase pooler: pgBouncer transaction mode — gunakan NullPool.
+    # psycopg2-binary tidak perlu prepare_threshold (itu khusus psycopg3).
     engine = create_engine(
         settings.database_url,
         poolclass=NullPool,
-        connect_args={"prepare_threshold": None},
         future=True,
     )
 else:
