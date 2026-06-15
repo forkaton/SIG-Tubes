@@ -11,9 +11,24 @@ function buildUrl(path, params = {}) {
   return qs ? `${path}?${qs}` : path;
 }
 
+let authToken = localStorage.getItem("admin_token") || null;
+
+export function setToken(token) {
+  if (token) {
+    authToken = token;
+    localStorage.setItem("admin_token", token);
+  } else {
+    authToken = null;
+    localStorage.removeItem("admin_token");
+  }
+}
+
 async function request(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
+
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers,
     ...options,
   });
   if (!res.ok) {
@@ -25,6 +40,25 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  // ===== Auth =====
+  login: async (username, password) => {
+    const params = new URLSearchParams();
+    params.append("username", username);
+    params.append("password", password);
+    const res = await fetch(`${BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(JSON.parse(text).detail || "Login gagal");
+    }
+    const data = await res.json();
+    setToken(data.access_token);
+    return data;
+  },
+
   // ===== Rute =====
   listRute:        ()       => request("/rute"),
   ruteGeojsonAll:  ()       => request("/rute/geojson"),

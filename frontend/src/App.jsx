@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import MapView from "./components/MapView.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import AdminPanel from "./components/AdminPanel.jsx";
-import { api } from "./api.js";
-import { IconMenu, IconX, IconSun, IconMoon } from "./components/Icons.jsx";
+import LandingPage from "./components/LandingPage.jsx";
+import { api, setToken } from "./api.js";
+import { IconMenu, IconX, IconSun, IconMoon, IconLogOut } from "./components/Icons.jsx";
 
 export default function App() {
-  const [view, setView]               = useState("map");
+  const [view, setView]               = useState("landing");
+  const [isAdmin, setIsAdmin]         = useState(!!localStorage.getItem("admin_token"));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [theme, setTheme]             = useState(() => {
     return localStorage.getItem("theme") || "light";
@@ -44,6 +46,9 @@ export default function App() {
   const [tripB, setTripB]           = useState(null);
   const [tripResult, setTripResult] = useState(null);
   const [tripLoading, setTripLoading] = useState(false);
+  
+  // Pan to position
+  const [panToPos, setPanToPos] = useState(null);
 
   async function reload() {
     const [rRes, rfRes, hfRes] = await Promise.allSettled([
@@ -138,6 +143,21 @@ export default function App() {
     else { resetTrip(); }
   }
 
+  function handleLogout() {
+    setToken(null);
+    setIsAdmin(false);
+    setView("landing");
+  }
+
+  if (view === "landing") {
+    return (
+      <LandingPage 
+        onEnterUser={() => setView("map")} 
+        onEnterAdmin={() => { setIsAdmin(true); setView("admin"); }} 
+      />
+    );
+  }
+
   return (
     <div className="app">
       <header className="topbar">
@@ -146,7 +166,19 @@ export default function App() {
         </div>
         <nav className="nav">
           <button className={view === "map" ? "active" : ""}   onClick={() => setView("map")}>Peta</button>
-          <button className={view === "admin" ? "active" : ""} onClick={() => setView("admin")}>Admin CRUD</button>
+          {!isAdmin && (
+            <button onClick={() => setView("landing")} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--bg-secondary)', color: 'var(--accent-color)', padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-color)', cursor: 'pointer', fontWeight: 600 }}>
+              Login Admin
+            </button>
+          )}
+          {isAdmin && (
+            <button className={view === "admin" ? "active" : ""} onClick={() => setView("admin")}>Admin Panel</button>
+          )}
+          {isAdmin && (
+            <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'var(--bg-secondary)', color: '#ef4444', padding: '6px 12px', borderRadius: 8, border: 'none', cursor: 'pointer' }}>
+              <IconLogOut size={16} /> Logout
+            </button>
+          )}
           <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle theme">
             {theme === "dark" ? <IconSun size={20} /> : <IconMoon size={20} />}
           </button>
@@ -177,6 +209,7 @@ export default function App() {
             tripA={tripA}           tripB={tripB}
             tripResult={tripResult} tripLoading={tripLoading}
             onResetTrip={resetTrip}
+            onHalteClick={(h) => setPanToPos({ lat: h.lat || h.latitude, lng: h.lng || h.longitude, zoom: 17, t: Date.now() })}
           />
 
           <button
@@ -202,6 +235,7 @@ export default function App() {
               tripB={tripB}
               tripResult={tripResult}
               theme={theme}
+              panToPos={panToPos}
             />
             <div className="legend">
               <h3>Legenda Halte</h3>

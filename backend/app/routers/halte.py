@@ -9,6 +9,7 @@ from ..database import get_db
 from ..schemas import (
     HalteCreate, HalteUpdate, HalteOut, HalteRadiusOut, FeatureCollection,
 )
+from ..auth import verify_token
 
 router = APIRouter(prefix="/api/v1/halte", tags=["Halte"])
 
@@ -142,7 +143,7 @@ def get_halte(id_halte: int, db: Session = Depends(get_db)):
     return _row_to_halte(row)
 
 
-@router.post("", response_model=HalteOut, status_code=201, summary="Tambah halte baru")
+@router.post("", response_model=HalteOut, status_code=201, summary="Tambah halte baru", dependencies=[Depends(verify_token)])
 def create_halte(payload: HalteCreate, db: Session = Depends(get_db)):
     sql_insert = """
         INSERT INTO halte_infrastruktur
@@ -169,7 +170,7 @@ def create_halte(payload: HalteCreate, db: Session = Depends(get_db)):
     return get_halte(new_id, db)
 
 
-@router.put("/{id_halte}", response_model=HalteOut, summary="Perbarui halte")
+@router.put("/{id_halte}", response_model=HalteOut, summary="Perbarui halte", dependencies=[Depends(verify_token)])
 def update_halte(id_halte: int, payload: HalteUpdate, db: Session = Depends(get_db)):
     exists = db.execute(
         text("SELECT 1 FROM halte_infrastruktur WHERE id_halte = :id"),
@@ -208,7 +209,7 @@ def update_halte(id_halte: int, payload: HalteUpdate, db: Session = Depends(get_
     return get_halte(id_halte, db)
 
 
-@router.delete("/{id_halte}", status_code=204, summary="Hapus halte")
+@router.delete("/{id_halte}", status_code=204, summary="Hapus halte", dependencies=[Depends(verify_token)])
 def delete_halte(id_halte: int, db: Session = Depends(get_db)):
     result = db.execute(text("DELETE FROM halte_infrastruktur WHERE id_halte = :id"), {"id": id_halte})
     db.commit()

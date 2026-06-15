@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import {
-  MapContainer, TileLayer, GeoJSON, Marker, Popup, Circle, useMapEvents,
+  MapContainer, TileLayer, GeoJSON, Marker, Popup, Circle, useMapEvents, useMap
 } from "react-leaflet";
 import L from "leaflet";
 
@@ -70,12 +70,22 @@ function ClickToSearch({ onMapClick }) {
   return null;
 }
 
+function MapPanner({ pos }) {
+  const map = useMap();
+  useEffect(() => {
+    if (pos) {
+      map.flyTo([pos.lat, pos.lng], pos.zoom || 16, { animate: true, duration: 1.5 });
+    }
+  }, [pos, map]);
+  return null;
+}
+
 export default function MapView({
   ruteFc, halteFc, selectedRute,
   showHalte = true, showRute = true, showRusak = true,
   radiusResult, onMapClick,
   mode = "radius", tripA, tripB, tripResult,
-  theme = "dark",
+  theme = "dark", panToPos,
 }) {
   const ruteFiltered = useMemo(() => ({
     type: "FeatureCollection",
@@ -93,8 +103,9 @@ export default function MapView({
     });
   }, [halteFc, showHalte, showRusak]);
 
-  const ruteKey = `rute-${ruteFc.features.length}-${showRute}-${Array.from(selectedRute).sort().join(",")}`;
-  const rideColor = tripResult?.halte_naik?.warna_peta || "#2563eb";
+  const ruteKey = `rute-${ruteFc.features.length}-${showRute}-${Array.from(selectedRute).sort().join(",")}-${mode}-${tripResult ? 'active' : 'inactive'}-${theme}`;
+  const absoluteColor = theme === "dark" ? "#f59e0b" : "#3b82f6";
+  const rideColor = absoluteColor;
 
   return (
     <MapContainer center={PEKANBARU_CENTER} zoom={12} scrollWheelZoom style={{ cursor: "crosshair" }}>
@@ -111,16 +122,21 @@ export default function MapView({
       )}
 
       <ClickToSearch onMapClick={onMapClick} />
+      <MapPanner pos={panToPos} />
 
       {/* === Rute (LineString) === */}
       {showRute && ruteFiltered.features.length > 0 && (
         <GeoJSON
           key={ruteKey}
           data={ruteFiltered}
-          style={(f) => ({
-            color: f.properties.warna_peta || "#3388ff",
-            weight: 6, opacity: 0.85,
-          })}
+          style={(f) => {
+            const isTripModeActive = mode === "trip" && tripResult;
+            return {
+              color: f.properties.warna_peta || "#3388ff",
+              weight: isTripModeActive ? 4 : 6, 
+              opacity: isTripModeActive ? 0.3 : 0.85,
+            };
+          }}
           onEachFeature={(feature, layer) => {
             const p = feature.properties;
             layer.bindPopup(`

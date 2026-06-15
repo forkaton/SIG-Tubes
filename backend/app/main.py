@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import settings
 from .routers import halte, rute, trip
+from .auth import router as auth_router
 from .seeder import reseed_all, run_seeders
 
 logging.basicConfig(
@@ -69,6 +70,7 @@ app.add_middleware(
 app.include_router(halte.router)
 app.include_router(rute.router)
 app.include_router(trip.router)
+app.include_router(auth_router)
 
 
 @app.get("/", tags=["Meta"])

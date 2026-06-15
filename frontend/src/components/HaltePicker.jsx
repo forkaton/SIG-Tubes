@@ -221,7 +221,7 @@ export default function HaltePicker({
         </div>
       )}
 
-      <div style={{ height, borderRadius: 8, overflow: "hidden", border: "1px solid #e5e7eb", position: "relative" }}>
+      <div className="map-container-wrapper" style={{ height, borderRadius: 8, overflow: "hidden", border: "1px solid #e5e7eb", position: "relative" }}>
         <MapContainer
           center={value ? [value.lat, value.lng] : PEKANBARU_CENTER}
           zoom={value ? 15 : 12}

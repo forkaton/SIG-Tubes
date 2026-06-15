@@ -6,6 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from ..database import get_db
+from ..seeder import osrm_snap_to_road
 
 router = APIRouter(prefix="/api/v1/trip", tags=["Trip"])
 
@@ -63,14 +64,30 @@ def _ride_along_corridor(db: Session, id_rute: int, id_a: int, id_b: int) -> dic
             return {"naik_bus_m": round(float(row.m), 1), "ride_geojson": row.geojson}
     except Exception:
         db.rollback()
-    # Fallback: garis lurus antar 2 halte
+        
+    # Fallback: gunakan OSRM untuk routing via jalan raya
     row = db.execute(text("""
-        SELECT ST_Distance(a.koordinat_titik::geography, b.koordinat_titik::geography) AS m,
-               ST_AsGeoJSON(ST_MakeLine(a.koordinat_titik, b.koordinat_titik))::json AS geojson
+        SELECT ST_Y(a.koordinat_titik) as lat_a, ST_X(a.koordinat_titik) as lng_a,
+               ST_Y(b.koordinat_titik) as lat_b, ST_X(b.koordinat_titik) as lng_b,
+               ST_Distance(a.koordinat_titik::geography, b.koordinat_titik::geography) AS m
         FROM halte_infrastruktur a, halte_infrastruktur b
         WHERE a.id_halte=:ida AND b.id_halte=:idb
     """), {"ida": id_a, "idb": id_b}).fetchone()
-    return {"naik_bus_m": round(float(row.m), 1), "ride_geojson": row.geojson}
+    
+    if row:
+        route_geom = osrm_snap_to_road([[row.lng_a, row.lat_a], [row.lng_b, row.lat_b]])
+        if route_geom:
+            return {"naik_bus_m": round(float(row.m), 1), "ride_geojson": route_geom}
+            
+        # Fallback terakhir jika OSRM gagal
+        fallback_row = db.execute(text("""
+            SELECT ST_AsGeoJSON(ST_MakeLine(a.koordinat_titik, b.koordinat_titik))::json AS geojson
+            FROM halte_infrastruktur a, halte_infrastruktur b
+            WHERE a.id_halte=:ida AND b.id_halte=:idb
+        """), {"ida": id_a, "idb": id_b}).fetchone()
+        return {"naik_bus_m": round(float(row.m), 1), "ride_geojson": fallback_row.geojson if fallback_row else None}
+        
+    return {"naik_bus_m": 0, "ride_geojson": None}
 
 
 @router.get("", summary="Rencana perjalanan A->B (estimasi jarak & waktu)")
@@ -98,14 +115,30 @@ def plan_trip(
                                     naik["id_halte"], turun["id_halte"])
         catatan = f"Langsung naik {naik['kode_trayek']} dari {naik['nama_halte']} ke {turun['nama_halte']}."
     else:
-        # Beda koridor -> estimasi garis lurus + catatan transit
+        # Beda koridor -> estimasi menggunakan OSRM routing
         row = db.execute(text("""
-            SELECT ST_Distance(a.koordinat_titik::geography, b.koordinat_titik::geography) AS m,
-                   ST_AsGeoJSON(ST_MakeLine(a.koordinat_titik, b.koordinat_titik))::json AS geojson
+            SELECT ST_Y(a.koordinat_titik) as lat_a, ST_X(a.koordinat_titik) as lng_a,
+                   ST_Y(b.koordinat_titik) as lat_b, ST_X(b.koordinat_titik) as lng_b,
+                   ST_Distance(a.koordinat_titik::geography, b.koordinat_titik::geography) AS m
             FROM halte_infrastruktur a, halte_infrastruktur b
             WHERE a.id_halte=:ida AND b.id_halte=:idb
         """), {"ida": naik["id_halte"], "idb": turun["id_halte"]}).fetchone()
-        ride = {"naik_bus_m": round(float(row.m), 1), "ride_geojson": row.geojson}
+        
+        route_geom = None
+        if row:
+            route_geom = osrm_snap_to_road([[row.lng_a, row.lat_a], [row.lng_b, row.lat_b]])
+            
+        if route_geom:
+            ride = {"naik_bus_m": round(float(row.m), 1), "ride_geojson": route_geom}
+        else:
+            # Fallback garis lurus
+            fb = db.execute(text("""
+                SELECT ST_AsGeoJSON(ST_MakeLine(a.koordinat_titik, b.koordinat_titik))::json AS geojson
+                FROM halte_infrastruktur a, halte_infrastruktur b
+                WHERE a.id_halte=:ida AND b.id_halte=:idb
+            """), {"ida": naik["id_halte"], "idb": turun["id_halte"]}).fetchone()
+            ride = {"naik_bus_m": round(float(row.m), 1), "ride_geojson": fb.geojson if fb else None}
+            
         catatan = (f"Perlu transit: naik {naik['kode_trayek']} dari {naik['nama_halte']}, "
                    f"lalu pindah ke {turun['kode_trayek']} menuju {turun['nama_halte']}.")
 

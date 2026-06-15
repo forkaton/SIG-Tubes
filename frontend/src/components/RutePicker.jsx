@@ -182,7 +182,7 @@ export default function RutePicker({
         </div>
       )}
 
-      <div style={{ height, borderRadius: 8, overflow: "hidden", border: "1px solid #e5e7eb" }}>
+      <div className="map-container-wrapper" style={{ height, borderRadius: 8, overflow: "hidden", border: "1px solid #e5e7eb" }}>
         <MapContainer center={PEKANBARU_CENTER} zoom={12} scrollWheelZoom style={{ height: "100%", width: "100%", cursor: "crosshair" }}>
           <TileLayer
             attribution='&copy; OpenStreetMap | Routing: OSRM'

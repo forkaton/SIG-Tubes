@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..schemas import RuteCreate, RuteUpdate, RuteOut, FeatureCollection
 from ..seeder import osrm_snap_to_road
+from ..auth import verify_token
 
 router = APIRouter(prefix="/api/v1/rute", tags=["Rute"])
 
@@ -133,7 +134,7 @@ def halte_sekitar_rute(id_rute: int, buffer_meter: int = 200, db: Session = Depe
     return fc
 
 
-@router.post("", response_model=RuteOut, status_code=201)
+@router.post("", response_model=RuteOut, status_code=201, dependencies=[Depends(verify_token)])
 def create_rute(payload: RuteCreate, db: Session = Depends(get_db)):
     sql_insert = """
         INSERT INTO rute_trayek
@@ -169,7 +170,7 @@ def create_rute(payload: RuteCreate, db: Session = Depends(get_db)):
     return _row_to_rute(row)
 
 
-@router.put("/{id_rute}", response_model=RuteOut)
+@router.put("/{id_rute}", response_model=RuteOut, dependencies=[Depends(verify_token)])
 def update_rute(id_rute: int, payload: RuteUpdate, db: Session = Depends(get_db)):
     exists = db.execute(text("SELECT 1 FROM rute_trayek WHERE id_rute = :id"),
                         {"id": id_rute}).scalar()
@@ -206,7 +207,7 @@ def update_rute(id_rute: int, payload: RuteUpdate, db: Session = Depends(get_db)
     return _row_to_rute(row)
 
 
-@router.delete("/{id_rute}", status_code=204)
+@router.delete("/{id_rute}", status_code=204, dependencies=[Depends(verify_token)])
 def delete_rute(id_rute: int, db: Session = Depends(get_db)):
     result = db.execute(text("DELETE FROM rute_trayek WHERE id_rute = :id"), {"id": id_rute})
     db.commit()
@@ -224,6 +225,7 @@ def delete_rute(id_rute: int, db: Session = Depends(get_db)):
         "memperbarui kolom geometri_jalur. Berguna memperbaiki data lama "
         "yang masih berupa garis lurus antar waypoint."
     ),
+    dependencies=[Depends(verify_token)]
 )
 def snap_all_rute(db: Session = Depends(get_db)):
     rows = db.execute(text(
