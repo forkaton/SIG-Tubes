@@ -161,8 +161,12 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div>
-          <h1>WebGIS Trans Metro Pekanbaru <span className="tag">SIG ITERA</span></h1>
+        <div className="topbar-brand">
+          <h1>
+            <span className="live-dot" title="Sistem Aktif" />
+            WebGIS Trans Metro
+            <span className="tag">SIG ITERA</span>
+          </h1>
         </div>
         <nav className="nav">
           <button className={view === "map" ? "active" : ""}   onClick={() => setView("map")}>Peta</button>

@@ -166,11 +166,11 @@ export default function Sidebar({
 
           <div className="trip-points">
             <div className="trip-point">
-              <span className="trip-dot" style={{ background: "#10b981" }}>A</span>
+              <span className="trip-dot" data-dot="A" style={{ background: "#10b981" }}>A</span>
               <span className="trip-coords">{tripA ? `${tripA.lat.toFixed(5)}, ${tripA.lng.toFixed(5)}` : "Pilih di peta"}</span>
             </div>
             <div className="trip-point">
-              <span className="trip-dot" style={{ background: "#ef4444" }}>B</span>
+              <span className="trip-dot" data-dot="B" style={{ background: "#ef4444" }}>B</span>
               <span className="trip-coords">{tripB ? `${tripB.lat.toFixed(5)}, ${tripB.lng.toFixed(5)}` : "Pilih di peta"}</span>
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function Sidebar({
               {/* Timeline: A → B */}
               <div className="trip-result">
                 <div className="trip-leg">
-                  <span className="trip-dot" style={{ background: "#10b981" }}>A</span>
+                  <span className="trip-dot" data-dot="A" style={{ background: "#10b981" }}>A</span>
                   <div className="trip-leg-info">
                     <span className="leg-label">Berangkat dari</span>
                     <b>{tripResult.halte_naik.nama_halte}</b>
@@ -204,7 +204,7 @@ export default function Sidebar({
                 </div>
 
                 <div className="trip-leg">
-                  <span className="trip-dot" style={{ background: "#ef4444" }}>B</span>
+                  <span className="trip-dot" data-dot="B" style={{ background: "#ef4444" }}>B</span>
                   <div className="trip-leg-info">
                     <span className="leg-label">Tiba di</span>
                     <b>{tripResult.halte_turun.nama_halte}</b>

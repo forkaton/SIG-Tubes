@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { api } from "../api.js";
-import { IconBus, IconLock, IconUser, IconChevronRight, IconLoader, IconAlert, IconEye, IconEyeOff } from "./Icons.jsx";
+import { IconBus, IconLock, IconUser, IconChevronRight, IconLoader, IconAlert, IconEye, IconEyeOff, IconMapPin, IconRoute } from "./Icons.jsx";
+
+const STATS = [
+  { value: "7", label: "Koridor Aktif" },
+  { value: "50+", label: "Titik Halte" },
+  { value: "112", label: "KM Jaringan" },
+];
 
 export default function LandingPage({ onEnterUser, onEnterAdmin }) {
   const [username, setUsername] = useState("");
@@ -25,31 +31,61 @@ export default function LandingPage({ onEnterUser, onEnterAdmin }) {
 
   return (
     <div className="landing-container">
+      {/* Animated background blobs */}
+      <div className="landing-bg-blob blob-1" />
+      <div className="landing-bg-blob blob-2" />
+      <div className="landing-bg-blob blob-3" />
+
       <div className="landing-card">
+        {/* ── Header ── */}
         <div className="landing-header">
           <div className="landing-logo">
-            <IconBus size={48} color="var(--accent-color)" />
+            <IconBus size={36} color="white" />
           </div>
-          <h1>WebGIS Trans Metro</h1>
-          <p>Sistem Informasi Rute & Halte Angkutan Umum Kota Pekanbaru</p>
+          <div className="landing-badge">Trans Metro Pekanbaru</div>
+          <h1>WebGIS<br /><span className="landing-title-accent">Angkutan Umum</span></h1>
+          <p>Sistem Informasi Geografis Rute &amp; Halte Kota Pekanbaru</p>
+
+          {/* Stats row */}
+          <div className="landing-stats">
+            {STATS.map((s) => (
+              <div key={s.label} className="landing-stat-item">
+                <span className="landing-stat-value">{s.value}</span>
+                <span className="landing-stat-label">{s.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
+        {/* ── Split content ── */}
         <div className="landing-split">
           {/* User Section */}
           <div className="landing-user">
+            <div className="landing-section-icon">
+              <IconMapPin size={22} color="var(--accent-color)" />
+            </div>
             <h2>Eksplorasi Publik</h2>
-            <p>Lihat rute, cari halte terdekat, dan rencanakan perjalanan Anda mengelilingi Pekanbaru.</p>
+            <p>Temukan rute, cari halte terdekat, dan rencanakan perjalanan Anda menggunakan Trans Metro Pekanbaru secara interaktif.</p>
+            <ul className="landing-feature-list">
+              <li>🗺️ Peta interaktif rute bus</li>
+              <li>📍 Cari halte dalam radius tertentu</li>
+              <li>🧭 Perencanaan perjalanan A→B</li>
+            </ul>
             <button className="btn-explore" onClick={onEnterUser}>
-              Try WebGIS Trans Metro Now! <IconChevronRight size={18} />
+              <span>Mulai Eksplorasi</span>
+              <IconChevronRight size={18} />
             </button>
           </div>
 
-          <div className="landing-divider"></div>
+          <div className="landing-divider" />
 
           {/* Admin Section */}
           <div className="landing-admin">
+            <div className="landing-section-icon">
+              <IconRoute size={22} color="var(--accent-color)" />
+            </div>
             <h2>Admin Panel</h2>
-            <p>Login untuk mengelola data operasional rute dan halte.</p>
+            <p>Kelola data operasional rute dan halte Trans Metro Pekanbaru.</p>
             <form onSubmit={handleLogin} className="login-form">
               {error && (
                 <div className="login-error">
@@ -58,28 +94,28 @@ export default function LandingPage({ onEnterUser, onEnterAdmin }) {
               )}
               <div className="input-group">
                 <IconUser size={16} />
-                <input 
-                  type="text" 
-                  placeholder="Username" 
-                  required 
+                <input
+                  type="text"
+                  placeholder="Username"
+                  required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </div>
               <div className="input-group">
                 <IconLock size={16} />
-                <input 
+                <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Password" 
-                  required 
+                  placeholder="Password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0, display: 'flex' }}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  style={{ background: "transparent", border: "none", color: "var(--text-secondary)", cursor: "pointer", padding: 0, display: "flex" }}
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                 >
                   {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
                 </button>
