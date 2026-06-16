@@ -170,7 +170,7 @@ export default function Sidebar({
           </div>
 
           {(tripA || tripB) && (
-            <button type="button" className="btn btn-secondary" style={{ marginTop: 12, width: "100%" }} onClick={onResetTrip}>
+            <button type="button" className="btn btn-reset-trip" style={{ marginTop: 12, width: "100%" }} onClick={onResetTrip}>
               <IconXCircle size={14} /> Reset Titik Asal & Tujuan
             </button>
           )}
@@ -182,54 +182,60 @@ export default function Sidebar({
           )}
 
           {tripResult && !tripLoading && (
-            <div className="trip-result">
-              <div className="trip-leg">
-                <span className="trip-dot" style={{ background: "#10b981" }}>A</span>
-                <div className="trip-leg-info">
-                  <span className="leg-label">Berangkat dari</span>
-                  <b>{tripResult.halte_naik.nama_halte}</b>
-                  <div className="muted">
-                    <span className="badge-trayek">{tripResult.halte_naik.kode_trayek}</span>
-                    <span>Jalan kaki {fmtJarak(tripResult.halte_naik.jarak_jalan_m)}</span>
+            <>
+              {/* Timeline: A → B */}
+              <div className="trip-result">
+                <div className="trip-leg">
+                  <span className="trip-dot" style={{ background: "#10b981" }}>A</span>
+                  <div className="trip-leg-info">
+                    <span className="leg-label">Berangkat dari</span>
+                    <b>{tripResult.halte_naik.nama_halte}</b>
+                    <div className="muted">
+                      <span className="badge-trayek">{tripResult.halte_naik.kode_trayek}</span>
+                      <span>Jalan kaki {fmtJarak(tripResult.halte_naik.jarak_jalan_m)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="trip-leg">
+                  <span className="trip-dot" style={{ background: "#ef4444" }}>B</span>
+                  <div className="trip-leg-info">
+                    <span className="leg-label">Tiba di</span>
+                    <b>{tripResult.halte_turun.nama_halte}</b>
+                    <div className="muted">
+                      <span className="badge-trayek">{tripResult.halte_turun.kode_trayek}</span>
+                      <span>Jalan kaki {fmtJarak(tripResult.halte_turun.jarak_jalan_m)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="trip-leg">
-                <span className="trip-dot" style={{ background: "#ef4444" }}>B</span>
-                <div className="trip-leg-info">
-                  <span className="leg-label">Tiba di</span>
-                  <b>{tripResult.halte_turun.nama_halte}</b>
-                  <div className="muted">
-                    <span className="badge-trayek">{tripResult.halte_turun.kode_trayek}</span>
-                    <span>Jalan kaki {fmtJarak(tripResult.halte_turun.jarak_jalan_m)}</span>
+              {/* Stats — di luar trip-result agar tidak dipotong garis vertikal */}
+              <div className="trip-stats-wrapper">
+                <div className="trip-stats">
+                  <div className="trip-stat">
+                    <IconRuler size={18} color="var(--accent-color)" />
+                    <span>Total Jarak</span>
+                    <b>{fmtJarak(tripResult.total_jarak_m)}</b>
+                  </div>
+                  <div className="trip-stat">
+                    <IconBus size={18} color="var(--accent-color)" />
+                    <span>Naik Bus</span>
+                    <b>{fmtJarak(tripResult.naik_bus_m)}</b>
+                  </div>
+                  <div className="trip-stat">
+                    <IconNavigation size={18} color="var(--accent-color)" />
+                    <span>Estimasi</span>
+                    <b>{tripResult.estimasi_menit} mnt</b>
                   </div>
                 </div>
-              </div>
 
-              <div className="trip-stats">
-                <div className="trip-stat">
-                  <IconRuler size={16} color="var(--accent-color)" />
-                  <span>Total Jarak</span>
-                  <b>{fmtJarak(tripResult.total_jarak_m)}</b>
-                </div>
-                <div className="trip-stat">
-                  <IconBus size={16} color="var(--accent-color)" />
-                  <span>Naik Bus</span>
-                  <b>{fmtJarak(tripResult.naik_bus_m)}</b>
-                </div>
-                <div className="trip-stat">
-                  <IconNavigation size={16} color="var(--accent-color)" />
-                  <span>Estimasi</span>
-                  <b>{tripResult.estimasi_menit} mnt</b>
+                <div className={`trip-alert ${tripResult.satu_koridor ? "success" : "warning"}`}>
+                  <IconFlag size={16} style={{ marginTop: 2, flexShrink: 0 }} color={tripResult.satu_koridor ? "#10b981" : "#f59e0b"} />
+                  <span>{tripResult.catatan}</span>
                 </div>
               </div>
-
-              <div className={`trip-alert ${tripResult.satu_koridor ? "success" : "warning"}`}>
-                <IconFlag size={16} style={{ marginTop: 2, flexShrink: 0 }} color={tripResult.satu_koridor ? "#10b981" : "#f59e0b"} />
-                <span>{tripResult.catatan}</span>
-              </div>
-            </div>
+            </>
           )}
         </div>
       )}

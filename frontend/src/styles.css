@@ -20,6 +20,11 @@
   --shadow-outer-sm: 4px 4px 8px rgba(0, 0, 0, 0.1), -4px -4px 8px rgba(255, 255, 255, 0.8);
   --shadow-inner: inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
   --shadow-inner-sm: inset 2px 2px 4px rgba(0, 0, 0, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8);
+  /* Danger/Reset — merah profesional, tidak mencolok */
+  --danger-subtle-bg: #fff1f2;
+  --danger-subtle-text: #be123c;
+  --danger-subtle-border: #fecdd3;
+  --danger-subtle-hover-bg: #ffe4e6;
 }
 
 [data-theme="dark"] {
@@ -39,6 +44,11 @@
   --shadow-outer-sm: 4px 4px 8px rgba(0, 0, 0, 0.6), -4px -4px 8px rgba(40, 40, 40, 0.1);
   --shadow-inner: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -4px -4px 8px rgba(40, 40, 40, 0.1);
   --shadow-inner-sm: inset 2px 2px 4px rgba(0, 0, 0, 0.4), inset -2px -2px 4px rgba(40, 40, 40, 0.05);
+  /* Danger/Reset — merah redup untuk dark mode */
+  --danger-subtle-bg: #2d1515;
+  --danger-subtle-text: #fca5a5;
+  --danger-subtle-border: #7f1d1d;
+  --danger-subtle-hover-bg: #3d1a1a;
 }
 
 html, body, #root {
@@ -205,6 +215,27 @@ input, select, textarea { font-family: inherit; transition: all 0.3s ease; }
 }
 .sidebar .btn-secondary { background: var(--bg-secondary); color: var(--text-secondary); }
 .sidebar .btn-danger    { background: var(--bg-secondary); color: #dc2626; }
+.sidebar .btn-reset-trip {
+  background: var(--danger-subtle-bg);
+  color: var(--danger-subtle-text);
+  border: 1px solid var(--danger-subtle-border) !important;
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.sidebar .btn-reset-trip:hover {
+  background: var(--danger-subtle-hover-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(190, 18, 60, 0.15);
+}
+.sidebar .btn-reset-trip:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
 .sidebar .btn:disabled  { background: var(--bg-secondary); color: var(--text-muted); cursor: not-allowed; opacity: 0.5; }
 
 .sidebar .checkbox-row {
@@ -1137,7 +1168,7 @@ input[type=range].custom-range::-moz-range-track {
   content: "";
   position: absolute;
   top: 36px;
-  bottom: 180px;
+  bottom: 36px;
   left: 27px;
   width: 2px;
   background: var(--border-color);
@@ -1193,12 +1224,18 @@ input[type=range].custom-range::-moz-range-track {
   font-weight: bold;
 }
 
+/* Trip Stats — wrapper terpisah di luar .trip-result */
+.trip-stats-wrapper {
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
 /* Trip Stats */
 .trip-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .trip-stat {
@@ -1207,22 +1244,25 @@ input[type=range].custom-range::-moz-range-track {
   align-items: center;
   text-align: center;
   background: var(--bg-secondary);
-  padding: 12px 6px;
-  border-radius: 12px;
+  padding: 14px 8px;
+  border-radius: 14px;
   box-shadow: var(--shadow-outer-sm);
   gap: 6px;
+  border: 1px solid var(--border-color);
 }
 
 .trip-stat span {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  font-weight: 600;
 }
 
 .trip-stat b {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--text-primary);
+  font-weight: 700;
 }
 
 .trip-alert {
