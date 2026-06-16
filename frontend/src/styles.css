@@ -1,4 +1,4 @@
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+﻿@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
 * { box-sizing: border-box; }
 
@@ -20,7 +20,7 @@
   --shadow-outer-sm: 4px 4px 8px rgba(0, 0, 0, 0.1), -4px -4px 8px rgba(255, 255, 255, 0.8);
   --shadow-inner: inset 4px 4px 8px rgba(0, 0, 0, 0.1), inset -4px -4px 8px rgba(255, 255, 255, 0.8);
   --shadow-inner-sm: inset 2px 2px 4px rgba(0, 0, 0, 0.1), inset -2px -2px 4px rgba(255, 255, 255, 0.8);
-  /* Danger/Reset — merah profesional, tidak mencolok */
+  /* Danger/Reset â€” merah profesional, tidak mencolok */
   --danger-subtle-bg: #fff1f2;
   --danger-subtle-text: #be123c;
   --danger-subtle-border: #fecdd3;
@@ -44,7 +44,7 @@
   --shadow-outer-sm: 4px 4px 8px rgba(0, 0, 0, 0.6), -4px -4px 8px rgba(40, 40, 40, 0.1);
   --shadow-inner: inset 4px 4px 8px rgba(0, 0, 0, 0.5), inset -4px -4px 8px rgba(40, 40, 40, 0.1);
   --shadow-inner-sm: inset 2px 2px 4px rgba(0, 0, 0, 0.4), inset -2px -2px 4px rgba(40, 40, 40, 0.05);
-  /* Danger/Reset — merah redup untuk dark mode */
+  /* Danger/Reset â€” merah redup untuk dark mode */
   --danger-subtle-bg: #2d1515;
   --danger-subtle-text: #fca5a5;
   --danger-subtle-border: #7f1d1d;
@@ -429,10 +429,12 @@ input, select, textarea { font-family: inherit; transition: all 0.3s ease; }
 
 /* ===== Admin panel ===== */
 .admin {
-  padding: 20px; 
-  overflow: auto; 
+  padding: 24px 4vw;
+  overflow: auto;
   background: var(--bg-primary);
   height: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 .admin h2 { margin-top: 0; color: var(--text-primary); }
 .admin table {
@@ -517,33 +519,41 @@ input, select, textarea { font-family: inherit; transition: all 0.3s ease; }
   opacity: 0.5;
 }
 
-/* ===== Admin Grid Layout ===== */
-.admin-grid-layout {
-  display: grid;
-  grid-template-columns: 50% 50%;
-  gap: 24px;
-  height: calc(100vh - 150px);
+/* ===== Admin New 2-Card Layout ===== */
+.admin-crud-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
   margin-top: 16px;
 }
-.admin-left-col {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding-right: 12px;
+
+.admin-top-split {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 32px;
+  align-items: stretch;
 }
-.admin-right-col {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.admin-right-col > div {
-  flex: 1;
+
+.admin-form-side {
   display: flex;
   flex-direction: column;
 }
-.admin-right-col > div > .map-container-wrapper {
+
+.admin-map-side {
+  min-height: 500px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-outer-sm), 0 0 0 1px var(--border-color);
+  display: flex;
+  flex-direction: column;
+}
+.admin-map-side > div {
   flex: 1;
   height: 100% !important;
+}
+
+.admin-bottom-table {
+  width: 100%;
 }
 
 .admin form button[type="button"] {
@@ -823,7 +833,7 @@ input, select, textarea { font-family: inherit; transition: all 0.3s ease; }
   color: var(--accent-color) !important;
 }
 
-/* ===== Custom Scrollbar — slim & modern ===== */
+/* ===== Custom Scrollbar â€” slim & modern ===== */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -1121,7 +1131,7 @@ input[type=range].custom-range::-moz-range-track {
   }
 }
 
-/* ===== Trip Planner & Mode Switch — Segmented Control ===== */
+/* ===== Trip Planner & Mode Switch â€” Segmented Control ===== */
 .mode-switch {
   display: flex;
   gap: 4px;
@@ -1277,7 +1287,7 @@ input[type=range].custom-range::-moz-range-track {
   font-weight: bold;
 }
 
-/* Trip Stats — wrapper terpisah di luar .trip-result */
+/* Trip Stats â€” wrapper terpisah di luar .trip-result */
 .trip-stats-wrapper {
   margin-top: 4px;
   padding-top: 4px;
@@ -1341,7 +1351,7 @@ input[type=range].custom-range::-moz-range-track {
   gap: 8px;
 }
 
-/* ===== Landing Page — Premium Redesign ===== */
+/* ===== Landing Page â€” Premium Redesign ===== */
 .landing-container {
   display: flex;
   align-items: center;
@@ -1856,10 +1866,12 @@ input[type=range].custom-range::-moz-range-track {
 }
 
 .admin-table-container {
+  max-height: 400px;
+  overflow-y: auto;
   background: var(--bg-secondary);
   border-radius: 16px;
-  overflow: hidden;
   box-shadow: var(--shadow-outer-sm), 0 0 0 1px var(--border-color);
+  margin-bottom: 24px;
 }
 .admin-table-container table {
   width: 100%;
@@ -1868,6 +1880,9 @@ input[type=range].custom-range::-moz-range-track {
 }
 .admin-table-container th {
   background: var(--bg-tertiary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
   color: var(--text-secondary);
   font-weight: 600;
   text-align: left;
@@ -1948,3 +1963,20 @@ input[type=range].custom-range::-moz-range-track {
 .admin-form-color::-webkit-color-swatch-wrapper { padding: 0; }
 .admin-form-color::-webkit-color-swatch { border: none; border-radius: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,0.1); }
 .color-value { font-family: monospace; font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
+
+
+
+
+
+@media (max-width: 1024px) {
+  .admin-top-split {
+    grid-template-columns: 1fr;
+  }
+  .admin-map-side {
+    min-height: 400px;
+  }
+  .admin {
+    padding: 16px 24px;
+  }
+}
+

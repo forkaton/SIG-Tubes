@@ -146,89 +146,105 @@ function HalteCrud({ onChanged }) {
   const restrictToRuteId = form.id_rute_pelintas ? parseInt(form.id_rute_pelintas, 10) : null;
 
   return (
-    <div className="admin-grid-layout">
-      <div className="admin-left-col">
-        <div className="admin-section-header">
-          <h3>
-            {editing 
-              ? <><IconEdit size={18} /> Edit Halte #{editing}</> 
-              : <><IconPlus size={18} /> Tambah Halte Baru</>}
-          </h3>
-          <div className="admin-header-actions">
-            <span className="admin-stat-badge">
-              <IconBarChart size={14} /> Rute: <b>{ruteList.length}</b> · Halte: <b>{halteList.length}</b>
-            </span>
-            <RefreshButton onClick={reload} loading={loading} />
-          </div>
-        </div>
-
-        <ErrorBox error={error} onRetry={reload} />
-
-        <form onSubmit={onSubmit} className="admin-form-card">
-          <div className="form-group">
-            <label className="admin-form-label">Tautkan ke Rute (Opsional)</label>
-            <select 
-              className="admin-form-input"
-              value={form.id_rute_pelintas}
-              onChange={(e) => setForm({ ...form, id_rute_pelintas: e.target.value })}
-            >
-              <option value="">— Tanpa rute (bebas klik di mana saja) —</option>
-              {ruteList.map((r) => (
-                <option key={r.id_rute} value={r.id_rute}>
-                  {r.kode_trayek} — {r.nama_trayek}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-grid">
-            <div className="full form-group">
-              <label className="admin-form-label">Nama Halte</label>
-              <input 
-                required 
-                className="admin-form-input"
-                placeholder="Contoh: Halte Sudirman 1"
-                value={form.nama_halte}
-                onChange={(e) => setForm({ ...form, nama_halte: e.target.value })} 
-              />
+    <div className="admin-crud-container">
+      {/* ── CARD ATAS: Form & Peta ── */}
+      <div className="admin-top-split">
+        <div className="admin-form-side">
+          <div className="admin-section-header">
+            <h3>
+              {editing 
+                ? <><IconEdit size={18} /> Edit Halte #{editing}</> 
+                : <><IconPlus size={18} /> Tambah Halte Baru</>}
+            </h3>
+            <div className="admin-header-actions">
+              <RefreshButton onClick={reload} loading={loading} />
             </div>
+          </div>
+
+          <ErrorBox error={error} onRetry={reload} />
+
+          <form onSubmit={onSubmit} className="admin-form-card">
             <div className="form-group">
-              <label className="admin-form-label">Kondisi</label>
+              <label className="admin-form-label">Tautkan ke Rute (Opsional)</label>
               <select 
                 className="admin-form-input"
-                value={form.kondisi_fisik}
-                onChange={(e) => setForm({ ...form, kondisi_fisik: e.target.value })}
+                value={form.id_rute_pelintas}
+                onChange={(e) => setForm({ ...form, id_rute_pelintas: e.target.value })}
               >
-                <option value="Beroperasi">Beroperasi</option>
-                <option value="Tidak Beroperasi">Tidak Beroperasi</option>
+                <option value="">— Tanpa rute (bebas klik di mana saja) —</option>
+                {ruteList.map((r) => (
+                  <option key={r.id_rute} value={r.id_rute}>
+                    {r.kode_trayek} — {r.nama_trayek}
+                  </option>
+                ))}
               </select>
             </div>
-            <div className="full form-group">
-              <label className="admin-form-label">Keterangan Tambahan</label>
-              <textarea 
-                rows={2} 
-                className="admin-form-input"
-                placeholder="Catatan..."
-                value={form.keterangan}
-                onChange={(e) => setForm({ ...form, keterangan: e.target.value })} 
-              />
+
+            <div className="form-grid">
+              <div className="full form-group">
+                <label className="admin-form-label">Nama Halte</label>
+                <input 
+                  required 
+                  className="admin-form-input"
+                  placeholder="Contoh: Halte Sudirman 1"
+                  value={form.nama_halte}
+                  onChange={(e) => setForm({ ...form, nama_halte: e.target.value })} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="admin-form-label">Kondisi</label>
+                <select 
+                  className="admin-form-input"
+                  value={form.kondisi_fisik}
+                  onChange={(e) => setForm({ ...form, kondisi_fisik: e.target.value })}
+                >
+                  <option value="Beroperasi">Beroperasi</option>
+                  <option value="Tidak Beroperasi">Tidak Beroperasi</option>
+                </select>
+              </div>
+              <div className="full form-group">
+                <label className="admin-form-label">Keterangan Tambahan</label>
+                <textarea 
+                  rows={2} 
+                  className="admin-form-input"
+                  placeholder="Catatan..."
+                  value={form.keterangan}
+                  onChange={(e) => setForm({ ...form, keterangan: e.target.value })} 
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="admin-form-actions">
-            <button type="submit" className="admin-btn-primary">
-              {editing ? <><IconEdit size={16} /> Simpan Perubahan</> : <><IconPlus size={16} /> Tambah Halte</>}
-            </button>
-            {editing && (
-              <button type="button" onClick={onCancel} className="admin-btn-secondary">
-                <IconXCircle size={16} /> Batal
+            <div className="admin-form-actions">
+              <button type="submit" className="admin-btn-primary">
+                {editing ? <><IconEdit size={16} /> Simpan Perubahan</> : <><IconPlus size={16} /> Tambah Halte</>}
               </button>
-            )}
-          </div>
-        </form>
+              {editing && (
+                <button type="button" onClick={onCancel} className="admin-btn-secondary">
+                  <IconXCircle size={16} /> Batal
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
 
-        <div className="admin-table-header">
+        <div className="admin-map-side">
+          <HaltePicker
+            value={coords}
+            onChange={setCoords}
+            ruteFc={ruteFc}
+            restrictToRuteId={restrictToRuteId}
+            height="100%"
+          />
+        </div>
+      </div>
+
+      {/* ── CARD BAWAH: Tabel Full Width ── */}
+      <div className="admin-bottom-table">
+        <div className="admin-table-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3>Daftar Halte Tersimpan ({halteList.length})</h3>
+          <span className="admin-stat-badge">
+            <IconBarChart size={14} /> Total Halte: <b>{halteList.length}</b>
+          </span>
         </div>
         
         {halteList.length === 0 ? (
@@ -279,16 +295,6 @@ function HalteCrud({ onChanged }) {
             </table>
           </div>
         )}
-      </div>
-      
-      <div className="admin-right-col">
-        <HaltePicker
-          value={coords}
-          onChange={setCoords}
-          ruteFc={ruteFc}
-          restrictToRuteId={restrictToRuteId}
-          height="100%"
-        />
       </div>
     </div>
   );
@@ -390,91 +396,108 @@ function RuteCrud({ onChanged }) {
   const isEdit = !!editing;
 
   return (
-    <div className="admin-grid-layout">
-      <div className="admin-left-col">
-        <div className="admin-section-header">
-          <h3>
-            {isEdit
-              ? <><IconEdit size={18} /> Edit Rute #{editing}</>
-              : <><IconPlus size={18} /> Tambah Rute Baru</>}
-          </h3>
-          <div className="admin-header-actions">
-            <span className="admin-stat-badge">
-              <IconBarChart size={14} /> Rute tersedia: <b>{list.length}</b>
-            </span>
-            <RefreshButton onClick={reload} loading={loading} />
+    <div className="admin-crud-container">
+      {/* ── CARD ATAS: Form & Peta ── */}
+      <div className="admin-top-split">
+        <div className="admin-form-side">
+          <div className="admin-section-header">
+            <h3>
+              {isEdit
+                ? <><IconEdit size={18} /> Edit Rute #{editing}</>
+                : <><IconPlus size={18} /> Tambah Rute Baru</>}
+            </h3>
+            <div className="admin-header-actions">
+              <RefreshButton onClick={reload} loading={loading} />
+            </div>
           </div>
-        </div>
 
-        <ErrorBox error={error} onRetry={reload} />
+          <ErrorBox error={error} onRetry={reload} />
 
-        <form onSubmit={onSubmit} className="admin-form-card">
-          {panjangKmEstimasi && (
-            <div className="admin-rute-estimation">
-              <IconRuler size={16} /> 
-              <span>Estimasi: <b>{panjangKmEstimasi} km</b></span>
-              <span className="dot-divider">•</span>
-              <span><b>{picker.lineString.coordinates.length}</b> titik</span>
-              <span className="dot-divider">•</span>
-              <span><b>{picker.waypoints?.length || 0}</b> waypoint</span>
-            </div>
-          )}
+          <form onSubmit={onSubmit} className="admin-form-card">
+            {panjangKmEstimasi && (
+              <div className="admin-rute-estimation">
+                <IconRuler size={16} /> 
+                <span>Estimasi: <b>{panjangKmEstimasi} km</b></span>
+                <span className="dot-divider">•</span>
+                <span><b>{picker.lineString.coordinates.length}</b> titik</span>
+                <span className="dot-divider">•</span>
+                <span><b>{picker.waypoints?.length || 0}</b> waypoint</span>
+              </div>
+            )}
 
-          <div className="form-grid">
-            <div className="form-group">
-              <label className="admin-form-label">Kode Trayek</label>
-              <input 
-                required 
-                maxLength={10} 
-                className="admin-form-input text-uppercase"
-                placeholder="Misal: K01" 
-                value={form.kode_trayek}
-                onChange={(e) => setForm({ ...form, kode_trayek: e.target.value.toUpperCase() })} 
-              />
-            </div>
-            <div className="form-group">
-              <label className="admin-form-label">Warna Rute</label>
-              <div className="color-picker-wrapper">
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="admin-form-label">Kode Trayek</label>
                 <input 
-                  type="color" 
-                  className="admin-form-color"
-                  value={form.warna_peta}
-                  onChange={(e) => setForm({ ...form, warna_peta: e.target.value })} 
+                  required 
+                  maxLength={10} 
+                  className="admin-form-input text-uppercase"
+                  placeholder="Misal: K01" 
+                  value={form.kode_trayek}
+                  onChange={(e) => setForm({ ...form, kode_trayek: e.target.value.toUpperCase() })} 
                 />
-                <span className="color-value">{form.warna_peta}</span>
+              </div>
+              <div className="form-group">
+                <label className="admin-form-label">Warna Rute</label>
+                <div className="color-picker-wrapper">
+                  <input 
+                    type="color" 
+                    className="admin-form-color"
+                    value={form.warna_peta}
+                    onChange={(e) => setForm({ ...form, warna_peta: e.target.value })} 
+                  />
+                  <span className="color-value">{form.warna_peta}</span>
+                </div>
+              </div>
+              <div className="full form-group">
+                <label className="admin-form-label">Nama Trayek</label>
+                <input 
+                  required 
+                  maxLength={150} 
+                  className="admin-form-input"
+                  placeholder="Misal: Pandau - Pelita Pantai" 
+                  value={form.nama_trayek}
+                  onChange={(e) => setForm({ ...form, nama_trayek: e.target.value })} 
+                />
               </div>
             </div>
-            <div className="full form-group">
-              <label className="admin-form-label">Nama Trayek</label>
-              <input 
-                required 
-                maxLength={150} 
-                className="admin-form-input"
-                placeholder="Misal: Pandau - Pelita Pantai" 
-                value={form.nama_trayek}
-                onChange={(e) => setForm({ ...form, nama_trayek: e.target.value })} 
-              />
-            </div>
-          </div>
 
-          <div className="admin-form-actions">
-            <button 
-              type="submit"
-              disabled={!isEdit && !picker?.lineString}
-              className={`admin-btn-primary ${(!isEdit && !picker?.lineString) ? "disabled" : ""}`}
-            >
-              {isEdit ? <><IconEdit size={16} /> Simpan Perubahan</> : <><IconPlus size={16} /> Simpan Rute Baru</>}
-            </button>
-            {isEdit && (
-              <button type="button" onClick={onCancel} className="admin-btn-secondary">
-                <IconXCircle size={16} /> Batal
+            <div className="admin-form-actions">
+              <button 
+                type="submit"
+                disabled={!isEdit && !picker?.lineString}
+                className={`admin-btn-primary ${(!isEdit && !picker?.lineString) ? "disabled" : ""}`}
+              >
+                {isEdit ? <><IconEdit size={16} /> Simpan Perubahan</> : <><IconPlus size={16} /> Simpan Rute Baru</>}
               </button>
-            )}
-          </div>
-        </form>
+              {isEdit && (
+                <button type="button" onClick={onCancel} className="admin-btn-secondary">
+                  <IconXCircle size={16} /> Batal
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
 
-        <div className="admin-table-header">
+        <div className="admin-map-side">
+          <RutePicker
+            value={picker}
+            onChange={setPicker}
+            onReset={() => setPicker(null)}
+            referenceLineString={refLineString}
+            referenceColor={form.warna_peta}
+            height="100%"
+          />
+        </div>
+      </div>
+
+      {/* ── CARD BAWAH: Tabel Full Width ── */}
+      <div className="admin-bottom-table">
+        <div className="admin-table-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3>Daftar Rute Tersimpan ({list.length})</h3>
+          <span className="admin-stat-badge">
+            <IconBarChart size={14} /> Total Rute: <b>{list.length}</b>
+          </span>
         </div>
 
         {list.length === 0 ? (
@@ -524,17 +547,6 @@ function RuteCrud({ onChanged }) {
             </table>
           </div>
         )}
-      </div>
-
-      <div className="admin-right-col">
-        <RutePicker
-          value={picker}
-          onChange={setPicker}
-          onReset={() => setPicker(null)}
-          referenceLineString={refLineString}
-          referenceColor={form.warna_peta}
-          height="100%"
-        />
       </div>
     </div>
   );
