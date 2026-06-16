@@ -1519,12 +1519,7 @@ input[type=range].custom-range::-moz-range-track {
   margin-top: 4px;
 }
 
-.landing-split {
-  display: flex;
-  align-items: stretch;
-  gap: 40px;
-  text-align: left;
-}
+.landing-split { display: flex; align-items: stretch; gap: 0; text-align: left; }
 
 @media (max-width: 768px) {
   .landing-split { flex-direction: column; gap: 20px; }
@@ -2090,4 +2085,10 @@ input[type=range].custom-range::-moz-range-track {
 }
 
 
+
+
+.logo-light { display: block; }
+.logo-dark { display: none; }
+[data-theme="dark"] .logo-light { display: none; }
+[data-theme="dark"] .logo-dark { display: block; }
 

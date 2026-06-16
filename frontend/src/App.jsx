@@ -162,7 +162,8 @@ export default function App() {
     <div className="app">
       <header className="topbar">
           <div className="topbar-brand" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <IconBus size={24} color="var(--accent-color)" />
+            <img src="/withouttextblue.png" alt="Logo WebGIS" className="logo-light" style={{ height: "36px", width: "auto" }} />
+            <img src="/withouttextorange.png" alt="Logo WebGIS" className="logo-dark" style={{ height: "36px", width: "auto" }} />
             <h1 style={{ display: "flex", alignItems: "center" }}>
               WebGIS Trans Metro Pekanbaru
               <span className="tag">SIG ITERA</span>

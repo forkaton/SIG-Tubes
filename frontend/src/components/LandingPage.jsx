@@ -1,8 +1,8 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { api } from "../api.js";
 import {
-  IconBus, IconLock, IconUser, IconChevronRight,
-  IconLoader, IconAlert, IconEye, IconEyeOff, IconArrowLeft
+  IconLock, IconUser, IconChevronRight,
+  IconLoader, IconAlert, IconEye, IconEyeOff
 } from "./Icons.jsx";
 
 export default function LandingPage({ onEnterUser, onEnterAdmin }) {
@@ -11,7 +11,6 @@ export default function LandingPage({ onEnterUser, onEnterAdmin }) {
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showLogin, setShowLogin]     = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -32,103 +31,82 @@ export default function LandingPage({ onEnterUser, onEnterAdmin }) {
       <div className="landing-bg-blob blob-1" />
       <div className="landing-bg-blob blob-2" />
 
-      <div className="landing-card" style={{ maxWidth: "440px", margin: "0 auto", padding: "40px 32px" }}>
-        <div className="landing-header" style={{ paddingBottom: showLogin ? "16px" : "0", marginBottom: "24px", transition: "padding 0.3s" }}>
-          <div className="landing-logo">
-            <IconBus size={32} color="white" />
-          </div>
-          <h1 style={{ fontSize: "1.8rem", marginBottom: "8px", fontWeight: 800 }}>WebGIS Trans Metro Pekanbaru</h1>
-          <p style={{ fontSize: "0.95rem", margin: 0, color: "var(--text-secondary)" }}>Sistem Informasi Geografis Rute &amp; Halte Kota Pekanbaru</p>
+      <div className="landing-card landing-split" style={{ maxWidth: "900px", width: "95%", padding: 0, overflow: "hidden" }}>
+        
+        {/* Panel Kiri - Publik */}
+        <div style={{ flex: 1, padding: "50px 40px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", background: "rgba(var(--accent-rgb, 30,58,138), 0.03)", borderRight: "1px solid var(--border-color)" }}>
+          
+          <img src="/withtextblue.png" alt="Trans Metro Pekanbaru" className="logo-light" style={{ width: "220px", height: "auto", marginBottom: "24px" }} />
+          <img src="/withtextorange.png" alt="Trans Metro Pekanbaru" className="logo-dark" style={{ width: "220px", height: "auto", marginBottom: "24px" }} />
+          
+          <p style={{ color: "var(--text-secondary)", fontSize: "1rem", lineHeight: "1.6", marginBottom: "32px", maxWidth: "300px" }}>
+            Sistem Informasi Geografis Rute &amp; Halte Angkutan Umum Kota Pekanbaru.
+          </p>
+          
+          <button className="btn-explore" onClick={onEnterUser} style={{ padding: "16px 28px", fontSize: "1.05rem", borderRadius: "14px", width: "100%", maxWidth: "280px", justifyContent: "center", boxShadow: "0 8px 24px rgba(30,58,138,0.2)" }}>
+            Akses Peta Publik
+            <IconChevronRight size={18} />
+          </button>
         </div>
 
-        <div className="landing-content" style={{ minHeight: "180px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          {!showLogin ? (
-            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", animation: "cardFadeIn 0.4s ease-out" }}>
-              <button className="btn-explore" onClick={onEnterUser} style={{ width: "100%", justifyContent: "center", padding: "14px 24px", fontSize: "1rem", borderRadius: "14px" }}>
-                Masuk ke Peta Publik
-                <IconChevronRight size={18} />
-              </button>
-              
-              <button 
-                onClick={() => setShowLogin(true)} 
-                style={{ 
-                  background: "transparent", color: "var(--text-secondary)", border: "none", 
-                  fontSize: "0.9rem", marginTop: "12px", display: "inline-flex", 
-                  alignItems: "center", gap: "6px", cursor: "pointer",
-                  padding: "8px 16px", borderRadius: "8px", transition: "all 0.2s", fontWeight: 600
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.color = "var(--text-primary)"; e.currentTarget.style.background = "var(--bg-tertiary)"; }}
-                onMouseOut={(e) => { e.currentTarget.style.color = "var(--text-secondary)"; e.currentTarget.style.background = "transparent"; }}
-              >
-                <IconUser size={14} /> Login Administrator
-              </button>
-            </div>
-          ) : (
-            <div className="landing-admin" style={{ animation: "cardFadeIn 0.4s ease-out", paddingTop: "24px", borderTop: "1px solid var(--border-color)" }}>
-              <form onSubmit={handleLogin} className="login-form">
-                {error && (
-                  <div className="login-error" style={{ padding: "10px 14px", borderRadius: "10px", background: "#fee2e2", color: "#991b1b", display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem", marginBottom: "16px" }}>
-                    <IconAlert size={14} /> {error}
-                  </div>
-                )}
-                <div className="input-group" style={{ marginBottom: "12px" }}>
-                  <IconUser size={15} />
-                  <input
-                    type="text"
-                    placeholder="Username"
-                    required
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    style={{ background: "var(--bg-primary)", padding: "12px 14px 12px 40px", borderRadius: "12px" }}
-                  />
-                </div>
-                <div className="input-group" style={{ marginBottom: "20px" }}>
-                  <IconLock size={15} />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={{ background: "var(--bg-primary)", padding: "12px 40px 12px 40px", borderRadius: "12px" }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      background: "transparent", border: "none",
-                      color: "var(--text-secondary)", cursor: "pointer",
-                      padding: 0, display: "flex", position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)"
-                    }}
-                    aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
-                  >
-                    {showPassword ? <IconEyeOff size={16} /> : <IconEye size={16} />}
-                  </button>
-                </div>
-                <button type="submit" disabled={loading} className="btn-explore" style={{ width: "100%", justifyContent: "center", padding: "14px 24px", borderRadius: "12px" }}>
-                  {loading
-                    ? <><IconLoader size={15} className="spin" /> Memverifikasi...</>
-                    : "Login"}
-                </button>
-              </form>
+        {/* Panel Kanan - Admin */}
+        <div style={{ flex: 1, padding: "50px 40px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <h2 style={{ fontSize: "1.4rem", fontWeight: 700, marginBottom: "8px", color: "var(--text-primary)" }}>Admin Panel</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem", marginBottom: "28px" }}>Login untuk mengelola operasional halte dan rute bus.</p>
 
-              <button 
-                type="button" 
-                onClick={() => { setShowLogin(false); setError(null); }} 
-                style={{ 
-                  background: "transparent", color: "var(--text-secondary)", border: "none", 
-                  fontSize: "0.85rem", marginTop: "20px", display: "flex", alignItems: "center", 
-                  gap: "6px", justifyContent: "center", width: "100%", cursor: "pointer", transition: "color 0.2s" 
+          <form onSubmit={handleLogin} className="login-form">
+            {error && (
+              <div className="login-error" style={{ padding: "10px 14px", borderRadius: "10px", background: "#fee2e2", color: "#991b1b", display: "flex", alignItems: "center", gap: "8px", fontSize: "0.85rem", marginBottom: "16px" }}>
+                <IconAlert size={14} /> {error}
+              </div>
+            )}
+            
+            <div className="input-group" style={{ marginBottom: "16px" }}>
+              <IconUser size={15} />
+              <input
+                type="text"
+                placeholder="Username"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                style={{ background: "var(--bg-primary)", padding: "14px 14px 14px 44px", borderRadius: "12px" }}
+              />
+            </div>
+            
+            <div className="input-group" style={{ marginBottom: "28px" }}>
+              <IconLock size={15} />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ background: "var(--bg-primary)", padding: "14px 44px 14px 44px", borderRadius: "12px" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  background: "transparent", border: "none",
+                  color: "var(--text-secondary)", cursor: "pointer",
+                  padding: 0, display: "flex", position: "absolute", right: "16px", top: "50%", transform: "translateY(-50%)"
                 }}
-                onMouseOver={(e) => e.currentTarget.style.color = "var(--text-primary)"}
-                onMouseOut={(e) => e.currentTarget.style.color = "var(--text-secondary)"}
+                aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
               >
-                <IconArrowLeft size={14} /> Kembali ke halaman awal
+                {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
               </button>
             </div>
-          )}
+            
+            <button type="submit" disabled={loading} className="btn-explore" style={{ width: "100%", justifyContent: "center", padding: "14px 24px", borderRadius: "12px", background: "var(--bg-primary)", color: "var(--text-primary)", border: "1px solid var(--border-color)", boxShadow: "var(--shadow-inner-sm)" }}>
+              {loading
+                ? <><IconLoader size={15} className="spin" /> Memverifikasi...</>
+                : "Login Administrator"}
+            </button>
+          </form>
         </div>
+
       </div>
     </div>
   );
 }
+
