@@ -9,8 +9,8 @@
 
 Implementasi WebGIS *full-stack* untuk **Trans Metro Pekanbaru (TMP)** 
 memetakan 8 **rute** BRT, 25 **halte** beserta status fisik, pencarian halte
-terdekat (ST_DWithin), dan admin panel CRUD dengan **klik peta untuk koordinat**
-serta **snap-to-road via OSRM** saat menambah rute baru.
+terdekat (ST_DWithin), perencana perjalanan (Trip Planner), dan admin panel CRUD dengan **klik peta untuk koordinat**
+serta **snap-to-road via OSRM** saat menambah rute baru. Terintegrasi dengan **Autentikasi JWT Stateless** dan disiapkan untuk **Vercel Deployment**.
 
 ---
 
@@ -31,9 +31,10 @@ serta **snap-to-road via OSRM** saat menambah rute baru.
 
 | Lapis    | Tech                                                | Folder            |
 |----------|-----------------------------------------------------|-------------------|
-| Database | PostgreSQL ≥14 + PostGIS ≥3                         | [database/](database) |
-| Backend  | FastAPI **sinkron** · SQLAlchemy 2 (raw SQL) · Pydantic v2 | [backend/](backend) |
-| Frontend | React 18 · Vite 5 · react-leaflet 4 · OSRM API      | [frontend/](frontend) |
+| Database | PostgreSQL >=14 + PostGIS >=3                       | database/         |
+| Backend  | FastAPI sinkron - SQLAlchemy 2 - Pydantic v2 - JWT  | backend/          |
+| Frontend | React 18 - Vite 5 - react-leaflet 4 - OSRM API      | frontend/         |
+| Deploy   | Vercel Serverless Functions                         | api/ & vercel.json|
 
 ---
 
@@ -49,7 +50,7 @@ createdb -U postgres sig_tmp_pekanbaru
 psql -U postgres -d sig_tmp_pekanbaru -f database/01_schema.sql
 ```
 
-Itu saja  **tidak perlu menjalankan file seed SQL**. Saat backend pertama kali
+Itu saja tidak perlu menjalankan file seed SQL. Saat backend pertama kali
 dijalankan, ia akan otomatis memuat 8 rute & 25 halte dari
 `backend/data/rute.geojson` dan `backend/data/halte.geojson` ke PostGIS.
 
@@ -69,7 +70,7 @@ Script ini akan `TRUNCATE` rute & halte, lalu seed ulang. Seeder akan:
    via `ST_Multi(ST_LineMerge(ST_Collect(...)))`
 3. Menghitung panjang rute aktual dengan `ST_Length(...geography)`
 
-Setelah selesai, restart backend  rute akan ditampilkan dengan geometri
+Setelah selesai, restart backend rute akan ditampilkan dengan geometri
 yang sudah tergabung dan mengikuti jalan raya OSM.
 
 Verifikasi setelah backend dijalankan:
@@ -92,7 +93,7 @@ ORDER  BY jarak_m;
 ### Struktur ERD
 
 ```
-rute_trayek (id_rute PK, Geometry geom  LineString atau MultiLineString)
+rute_trayek (id_rute PK, Geometry geom LineString atau MultiLineString)
   │  1:N memiliki
   └──> halte_infrastruktur (id_halte PK, Point geom, FK id_rute_pelintas)
 ```
@@ -101,7 +102,7 @@ GIST spatial index pada `geometri_jalur` dan `koordinat_titik`.
 
 ---
 
-## 2. Setup Backend (FastAPI sinkron, raw SQL)
+## 2. Setup Backend (FastAPI sinkron, raw SQL, JWT Auth)
 
 ```powershell
 cd backend
@@ -109,7 +110,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 
-# Edit DATABASE_URL sesuai password postgres Anda
+# Edit DATABASE_URL dan JWT_SECRET sesuai kebutuhan Anda
 copy .env.example .env
 notepad .env
 
@@ -128,32 +129,30 @@ INFO seeder: Seeder halte: 25 baris dimasukkan.
 INFO main: Auto-seeder selesai: {'rute': 8, 'halte': 25}
 ```
 
-Seeder membaca `rute.geojson` (394 LineString fragments dari OSM), mengelompokkan
-per `kode_trayek`, lalu menggabung segmen terpotong menjadi MultiLineString utuh
-menggunakan `ST_Multi(ST_LineMerge(ST_Collect(...)))` di level PostGIS.
-
 Buka:
-- Swagger UI: <http://localhost:8000/docs>
-- OpenAPI:    <http://localhost:8000/openapi.json>
+- Swagger UI: http://localhost:8000/docs
+- OpenAPI:    http://localhost:8000/openapi.json
 
 ### Daftar Endpoint (v2.0)
 
 | Method | Path                                          | Deskripsi |
 |-------:|-----------------------------------------------|-----------|
+| POST   | `/api/v1/auth/login`                          | Login Admin (JWT Stateless) |
+| GET    | `/api/v1/trip`                                | Perencana perjalanan (Trip Planner) |
 | GET    | `/api/v1/halte`                               | List halte (filter `kondisi`, `id_rute`) |
-| GET    | `/api/v1/halte/radius?lat&lng&radius`         | **ST_DWithin**  halte dalam radius (m) |
+| GET    | `/api/v1/halte/radius?lat&lng&radius`         | **ST_DWithin** halte dalam radius (m) |
 | GET    | `/api/v1/halte/geojson`                       | FeatureCollection halte |
 | GET    | `/api/v1/halte/{id}`                          | Detail halte |
-| POST   | `/api/v1/halte`                               | Tambah halte (validasi Pydantic) |
-| PUT    | `/api/v1/halte/{id}`                          | Update halte |
-| DELETE | `/api/v1/halte/{id}`                          | Hapus halte |
+| POST   | `/api/v1/halte`                               | Tambah halte (Butuh Auth) |
+| PUT    | `/api/v1/halte/{id}`                          | Update halte (Butuh Auth) |
+| DELETE | `/api/v1/halte/{id}`                          | Hapus halte (Butuh Auth) |
 | GET    | `/api/v1/rute`                                | List rute |
 | GET    | `/api/v1/rute/geojson`                        | FeatureCollection semua rute |
 | GET    | `/api/v1/rute/{id}/geojson`                   | GeoJSON Feature satu rute |
 | GET    | `/api/v1/rute/{id}/halte-sekitar?buffer_meter`| Halte di sekitar jalur (ST_DWithin LineString) |
-| POST   | `/api/v1/rute`                                | Tambah rute (kirim GeoJSON LineString) |
-| PUT    | `/api/v1/rute/{id}`                           | Update rute |
-| DELETE | `/api/v1/rute/{id}`                           | Hapus rute |
+| POST   | `/api/v1/rute`                                | Tambah rute (Butuh Auth) |
+| PUT    | `/api/v1/rute/{id}`                           | Update rute (Butuh Auth) |
+| DELETE | `/api/v1/rute/{id}`                           | Hapus rute (Butuh Auth) |
 
 ---
 
@@ -165,40 +164,27 @@ npm install
 npm run dev
 ```
 
-Buka <http://localhost:5173>.
+Buka http://localhost:5173.
 
 ### Fitur Frontend
 
-- **Map Centric Layout**  OpenStreetMap full screen, sidebar tool 340 px.
-- **Pencarian Halte Terdekat**  klik peta untuk menentukan lokasi referensi,
-  slider radius 100–5000 m → `GET /api/v1/halte/radius`. Hasil di sidebar +
-  lingkaran biru di peta. Tombol ** Pakai GPS** untuk geolocation cepat.
-- **Toggle Layer**  checkbox tampilkan/sembunyikan Rute & Halte, filter halte
-  tidak beroperasi.
-- **Popup Detail**  halte (nama, jalan, rute, kondisi) & rute (kode, panjang).
-- **Admin CRUD Halte**  `HaltePicker.jsx`:
-  - **Klik peta** di mana saja → marker biru pindah, koordinat otomatis terisi.
-  - Tombol ** Gunakan Lokasi GPS Saya** → langsung set ke posisi GPS.
-  - Overlay rute eksisting ditampilkan transparan agar admin tahu trayek terdekat.
-- **Admin CRUD Rute**  `RutePicker.jsx`:
-  - **Tambah rute (create):** Klik pertama → **Titik Awal** (marker hijau).
-    Klik kedua → **Titik Akhir** (marker merah). Dapat klik lagi untuk menambah
-    waypoint tengah. Otomatis memanggil **OSRM multi-waypoint snap-to-road** → 
-    menerima GeoJSON LineString yang mengikuti jalan raya.
-  - **Edit rute (update):** Garis geometri existing ditampilkan dengan warna rute
-    (dari `warna_peta`). Admin dapat menggambar ulang rute atau biarkan kosong
-    untuk skip update geometri. Mendukung baik LineString (OSRM) maupun MultiLineString
-    (seeder).
-  - Polyline biru tebal ditampilkan + estimasi panjang km.
-  - Tombol Simpan mengirim LineString ke `POST /api/v1/rute` (create) atau 
-    `PUT /api/v1/rute/{id}` (update).
+- **Landing Page & Single-Card Login:** Tampilan profesional dengan logo kustom (Light/Dark mode) dan formulir login admin bergaya Progressive Disclosure.
+- **Trip Planner (Rute A-B):** Cari rute antar 2 lokasi, menghitung estimasi jarak & waktu tempuh. Sistem akan menyorot rute (highlight dinamis) pada peta berdasarkan geometri dari PostGIS (ST_LineLocatePoint) atau fall back ke OSRM.
+- **Map Centric Layout:** OpenStreetMap full screen, sidebar interaktif.
+- **Pencarian Halte Terdekat:** Klik peta untuk menentukan lokasi referensi, slider radius 100-5000 m. Hasil di sidebar + lingkaran radius di peta. Tombol GPS untuk lokasi aktual.
+- **Toggle Layer:** Checkbox tampilkan/sembunyikan Rute & Halte, filter halte.
+- **Popup Detail:** Halte (nama, jalan, rute, kondisi) & Rute (kode, panjang).
+- **Admin CRUD Halte:** Klik peta di mana saja untuk mengisi koordinat secara otomatis, dan tombol set dari lokasi GPS.
+- **Admin CRUD Rute (OSRM Snap-to-Road):** Klik Titik Awal & Titik Akhir untuk membentuk garis rute yang secara otomatis menempel (snap) ke jalan raya via OSRM public API, lalu disimpan kembali sebagai PostGIS LineString.
 
 ---
 
-## Struktur Folder
+## Struktur Folder Terkini
 
 ```
 SIG_TUBES/
+├── api/
+│   └── index.py                 # Vercel Serverless Function entry point
 ├── database/
 │   └── 01_schema.sql            # CREATE TABLE rute_trayek + halte_infrastruktur
 ├── backend/
@@ -214,24 +200,32 @@ SIG_TUBES/
 │       ├── models.py            # Slim ORM (raw SQL untuk geom)
 │       ├── schemas.py           # Pydantic schemas (Rute, Halte)
 │       ├── seeder.py            # Auto-seed dari GeoJSON
+│       ├── auth.py              # JWT Stateless authentication
 │       └── routers/
 │           ├── halte.py         # CRUD + ST_DWithin radius (raw SQL)
-│           └── rute.py          # CRUD + GeoJSON + ST_DWithin LineString
-└── frontend/
-    ├── package.json
-    ├── vite.config.js
-    ├── index.html
-    └── src/
-        ├── main.jsx
-        ├── App.jsx
-        ├── api.js               # fetch helper + osrmRoute()
-        ├── styles.css
-        └── components/
-            ├── MapView.jsx      # Peta utama (rute + halte + radius)
-            ├── Sidebar.jsx      # Filter + radius search GPS
-            ├── HaltePicker.jsx  # Klik peta → koordinat halte + GPS
-            ├── RutePicker.jsx   # Klik A→B → OSRM snap-to-road
-            └── AdminPanel.jsx   # CRUD Halte + Rute (integrasi picker)
+│           ├── rute.py          # CRUD + GeoJSON + ST_DWithin LineString
+│           └── trip.py          # Perencana Perjalanan (Trip Planner)
+├── frontend/
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── index.html
+│   └── src/
+│       ├── main.jsx
+│       ├── App.jsx
+│       ├── api.js               # fetch helper + osrmRoute()
+│       ├── styles.css
+│       └── components/
+│           ├── MapView.jsx      # Peta utama (rute + halte + radius)
+│           ├── Sidebar.jsx      # Filter + radius search GPS
+│           ├── HaltePicker.jsx  # Klik peta untuk koordinat halte
+│           ├── RutePicker.jsx   # Klik A-B untuk OSRM snap-to-road
+│           ├── AdminPanel.jsx   # CRUD Halte + Rute (integrasi picker)
+│           ├── LandingPage.jsx  # Halaman landing dengan login admin
+│           ├── ConfirmModal.jsx # Modal konfirmasi untuk hapus data
+│           └── Icons.jsx        # Komponen icon SVG
+├── logo/                        # Aset logo aplikasi (Light/Dark mode)
+└── vercel.json                  # Konfigurasi deployment Vercel
 ```
 
 ---
+
