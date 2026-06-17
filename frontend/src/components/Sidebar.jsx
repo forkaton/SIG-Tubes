@@ -97,7 +97,6 @@ export default function Sidebar({
                    style={{ backgroundSize: `${((radius - 100) * 100) / 4900}% 100%` }}
                    value={radius}
                    onInput={(e) => {
-                     // Update visual fill LANGSUNG (zero-delay) saat thumb digeser
                      const pct = ((e.target.value - 100) * 100) / 4900;
                      e.target.style.backgroundSize = `${pct}% 100%`;
                    }}
@@ -142,7 +141,7 @@ export default function Sidebar({
                   {radiusResult.halte.map((h) => (
                     <li key={h.id_halte} onClick={() => onHalteClick?.(h)}>
                       <div><b>{h.nama_halte}</b> <span className={badgeClass(h.kondisi_fisik)}>{h.kondisi_fisik}</span></div>
-                      <div className="muted">{h.kode_trayek || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"} Ãƒâ€šÃ‚Â· {Math.round(h.jarak_meter)} m</div>
+                      <div className="muted">{h.kode_trayek || "—"} · {Math.round(h.jarak_meter)} m</div>
                     </li>
                   ))}
                 </ul>
@@ -164,7 +163,7 @@ export default function Sidebar({
             boxShadow: "var(--shadow-inner-sm)",
           }}>
             <IconMousePointer size={16} style={{ marginTop: 1, color: "var(--accent-color)" }} />
-            <span>Klik peta untuk titik <b>Asal (A)</b>, lalu klik lagi untuk <b>Tujuan (B)</b>. Sistem akan mencari halte terdekat & estimasi perjalanan.</span>
+            <span>Klik peta untuk titik <b>Asal (A)</b>, lalu klik lagi untuk <b>Tujuan (B)</b>. Sistem akan mencari halte terdekat &amp; estimasi perjalanan.</span>
           </div>
 
           <div className="trip-points">
@@ -180,7 +179,7 @@ export default function Sidebar({
 
           {(tripA || tripB) && (
             <button type="button" className="btn btn-reset-trip" style={{ marginTop: 12, width: "100%" }} onClick={() => setShowResetConfirm(true)}>
-              <IconXCircle size={14} /> Reset Titik Asal & Tujuan
+              <IconXCircle size={14} /> Reset Titik Asal &amp; Tujuan
             </button>
           )}
 
@@ -192,7 +191,7 @@ export default function Sidebar({
 
           {tripResult && !tripLoading && (
             <>
-              {/* Timeline: A ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ B */}
+              {/* Timeline: A -> B */}
               <div className="trip-result">
                 <div className="trip-leg">
                   <span className="trip-dot" data-dot="A" style={{ background: "#10b981" }}>A</span>
@@ -219,7 +218,7 @@ export default function Sidebar({
                 </div>
               </div>
 
-              {/* Stats ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â di luar trip-result agar tidak dipotong garis vertikal */}
+              {/* Stats â€” di luar trip-result agar tidak dipotong garis vertikal */}
               <div className="trip-stats-wrapper">
                 <div className="trip-stats">
                   <div className="trip-stat">
@@ -239,7 +238,7 @@ export default function Sidebar({
                   </div>
                 </div>
 
-              <div className={`trip-alert ${tripResult.satu_koridor ? "success" : "warning"}`}>
+                <div className={`trip-alert ${tripResult.satu_koridor ? "success" : "warning"}`}>
                   <IconFlag size={16} style={{ marginTop: 2, flexShrink: 0 }} color={tripResult.satu_koridor ? "#10b981" : "var(--accent-color)"} />
                   <span>{tripResult.catatan}</span>
                 </div>
@@ -293,9 +292,3 @@ export default function Sidebar({
     </>
   );
 }
-
-
-
-
-
-

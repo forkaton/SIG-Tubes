@@ -6,86 +6,218 @@ import L from "leaflet";
 
 const PEKANBARU_CENTER = [0.5071, 101.4478];
 
-function badgeClass(k) {
-  return k === "Beroperasi" ? "badge badge-beroperasi" : "badge badge-tidak-beroperasi";
-}
-
-function busStopPinIcon(color) {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='30' height='42' viewBox='0 0 30 42'>
-    <path d='M15 0C6.72 0 0 6.72 0 15c0 11.25 15 27 15 27s15-15.75 15-27C30 6.72 23.28 0 15 0z' fill='${color}' stroke='white' stroke-width='2'/>
-    <circle cx='15' cy='15' r='8' fill='white'/>
-    <path d='M11.5 11.5h7v5.5h-.4l.3.7h-.7l-.3-.7h-3l-.3.7h-.7l.3-.7h-.4v-5.5zm1 1v3h5v-3h-5zm.7 4.2c.3 0 .5-.2.5-.5s-.2-.5-.5-.5-.5.2-.5.5.2.5.5.5zm3.6 0c.3 0 .5-.2.5-.5s-.2-.5-.5-.5-.5.2-.5.5.2.5.5.5z' fill='${color}'/>
+/* ─────────────────────────────────────────
+   SVG Icon factories
+───────────────────────────────────────── */
+function busStopPin(color) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='44' viewBox='0 0 32 44'>
+    <filter id='s'><feDropShadow dx='0' dy='2' stdDeviation='2' flood-opacity='.3'/></filter>
+    <path filter='url(#s)' d='M16 0C7.16 0 0 7.16 0 16c0 12 16 28 16 28S32 28 32 16C32 7.16 24.84 0 16 0z' fill='${color}'/>
+    <circle cx='16' cy='16' r='9' fill='white' opacity='.95'/>
+    <path d='M12 11.5h8v6.5h-.5l.4.9H19l-.4-.9h-3.2l-.4.9h-.9l.4-.9H14V11.5zm1.1 1.1v3.6h5.8v-3.6H13.1zm.8 5c.4 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6zm4.2 0c.4 0 .6-.3.6-.6s-.3-.6-.6-.6-.6.3-.6.6.3.6.6.6z' fill='${color}'/>
   </svg>`;
   return new L.Icon({
-    iconUrl:     "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
-    iconSize:    [30, 42],
-    iconAnchor:  [15, 42],
-    popupAnchor: [0, -38],
+    iconUrl: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    iconSize: [32, 44], iconAnchor: [16, 44], popupAnchor: [0, -40],
   });
 }
 
-function searchPinIcon() {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='34' height='46' viewBox='0 0 34 46'>
-    <path d='M17 0C7.6 0 0 7.6 0 17c0 12.75 17 29 17 29s17-16.25 17-29C34 7.6 26.4 0 17 0z' fill='#f59e0b' stroke='white' stroke-width='2.5'/>
-    <circle cx='17' cy='17' r='9' fill='white'/>
-    <circle cx='17' cy='17' r='5' fill='#f59e0b'/>
+function searchPin() {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='48' viewBox='0 0 36 48'>
+    <filter id='s'><feDropShadow dx='0' dy='2' stdDeviation='2' flood-opacity='.3'/></filter>
+    <path filter='url(#s)' d='M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30S36 31.5 36 18C36 8.06 27.94 0 18 0z' fill='#f59e0b'/>
+    <circle cx='18' cy='18' r='10' fill='white' opacity='.95'/>
+    <circle cx='18' cy='18' r='5' fill='#f59e0b'/>
+    <path d='M23 22.5l4 4' stroke='#f59e0b' stroke-width='2' stroke-linecap='round'/>
   </svg>`;
   return new L.Icon({
-    iconUrl:     "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
-    iconSize:    [34, 46],
-    iconAnchor:  [17, 46],
-    popupAnchor: [0, -42],
+    iconUrl: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    iconSize: [36, 48], iconAnchor: [18, 48], popupAnchor: [0, -44],
   });
 }
 
-/** Pin huruf (A / B) untuk titik trip */
-function letterPinIcon(letter, color) {
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='34' height='46' viewBox='0 0 34 46'>
-    <path d='M17 0C7.6 0 0 7.6 0 17c0 12.75 17 29 17 29s17-16.25 17-29C34 7.6 26.4 0 17 0z' fill='${color}' stroke='white' stroke-width='2.5'/>
-    <circle cx='17' cy='17' r='10' fill='white'/>
-    <text x='17' y='22' font-size='14' font-weight='bold' text-anchor='middle' fill='${color}' font-family='Arial,sans-serif'>${letter}</text>
+function letterPin(letter, color) {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='48' viewBox='0 0 36 48'>
+    <filter id='s'><feDropShadow dx='0' dy='2' stdDeviation='2' flood-opacity='.3'/></filter>
+    <path filter='url(#s)' d='M18 0C8.06 0 0 8.06 0 18c0 13.5 18 30 18 30S36 31.5 36 18C36 8.06 27.94 0 18 0z' fill='${color}'/>
+    <circle cx='18' cy='18' r='11' fill='white' opacity='.95'/>
+    <text x='18' y='23' font-size='14' font-weight='700' text-anchor='middle' fill='${color}' font-family='Inter,Arial,sans-serif'>${letter}</text>
   </svg>`;
   return new L.Icon({
-    iconUrl:     "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
-    iconSize:    [34, 46],
-    iconAnchor:  [17, 46],
-    popupAnchor: [0, -42],
+    iconUrl: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    iconSize: [36, 48], iconAnchor: [18, 48], popupAnchor: [0, -44],
   });
 }
 
+/* Singleton icons — avoid recreating on every render */
 const ICONS = {
-  "Beroperasi":       busStopPinIcon("#16a34a"),
-  "Tidak Beroperasi": busStopPinIcon("#dc2626"),
+  "Beroperasi":       busStopPin("#16a34a"),
+  "Tidak Beroperasi": busStopPin("#dc2626"),
 };
-const ICON_SEARCH = searchPinIcon();
-const ICON_A = letterPinIcon("A", "#16a34a");
-const ICON_B = letterPinIcon("B", "#dc2626");
+const ICON_SEARCH = searchPin();
+const ICON_A      = letterPin("A", "#16a34a");
+const ICON_B      = letterPin("B", "#dc2626");
 
+/* ─────────────────────────────────────────
+   Inline SVG strings for popup icons
+   (can't use React components inside
+   dangerouslySetInnerHTML / bindPopup)
+───────────────────────────────────────── */
+const SVG_BUS = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="13" rx="3"/><path d="M3 9h18M8 3v4M16 3v4M7 16v4M17 16v4"/><circle cx="7" cy="17" r="1.5"/><circle cx="17" cy="17" r="1.5"/></svg>`;
+const SVG_ROUTE = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17h18M3 7h18M8 7l-5 5 5 5M16 7l5 5-5 5"/></svg>`;
+const SVG_PIN = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`;
+const SVG_RULER = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 8.7L8.7 21.3a2.4 2.4 0 0 1-3.4 0L2.7 18.7a2.4 2.4 0 0 1 0-3.4L15.3 2.7a2.4 2.4 0 0 1 3.4 0l2.6 2.6a2.4 2.4 0 0 1 0 3.4z"/><path d="m7.5 10.5 3 3M10.5 7.5l3 3M13.5 4.5l3 3"/></svg>`;
+const SVG_ARROW = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
+const SVG_GPS = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>`;
+const SVG_SEARCH = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`;
+const SVG_MSG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+
+/* ─────────────────────────────────────────
+   Popup HTML builders
+───────────────────────────────────────── */
+
+function haltePopupHtml(p) {
+  const isOk    = p.kondisi_fisik === "Beroperasi";
+  const dotClr  = isOk ? "#16a34a" : "#dc2626";
+  const badgeClr = isOk
+    ? "color:#15803d;background:#dcfce7;border-color:#bbf7d0"
+    : "color:#b91c1c;background:#fee2e2;border-color:#fecaca";
+  const warna   = p.warna_peta || "#3b82f6";
+  const lat     = Number(p.latitude  || 0).toFixed(5);
+  const lng     = Number(p.longitude || 0).toFixed(5);
+
+  const trayekRow = p.kode_trayek ? `
+    <div class="mpc-row">
+      <dt class="mpc-label">Trayek</dt>
+      <dd class="mpc-val">
+        <span class="mpc-chip" style="background:${warna}20;color:${warna};border-color:${warna}40">${p.kode_trayek}</span>
+        <span class="mpc-route-name">${p.nama_trayek || ""}</span>
+      </dd>
+    </div>` : `
+    <div class="mpc-row">
+      <dt class="mpc-label">Trayek</dt>
+      <dd class="mpc-val mpc-muted">Tanpa rute</dd>
+    </div>`;
+
+  const keterangan = p.keterangan ? `
+    <div class="mpc-note">
+      <span class="mpc-note-icon">${SVG_MSG}</span>
+      <span>${p.keterangan}</span>
+    </div>` : "";
+
+  return `
+  <div class="mpc-card">
+    <div class="mpc-header" style="border-top:3px solid ${dotClr}">
+      <div class="mpc-icon-wrap" style="background:${dotClr}15;color:${dotClr}">${SVG_BUS}</div>
+      <div class="mpc-title-col">
+        <p class="mpc-name">${p.nama_halte || "Halte"}</p>
+        <span class="mpc-badge" style="${badgeClr}">
+          <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${dotClr};flex-shrink:0"></span>
+          ${p.kondisi_fisik || "—"}
+        </span>
+      </div>
+    </div>
+    <dl class="mpc-grid">
+      ${trayekRow}
+      <div class="mpc-row">
+        <dt class="mpc-label">Koordinat</dt>
+        <dd class="mpc-val mpc-mono">${lat}, ${lng}</dd>
+      </div>
+    </dl>
+    ${keterangan}
+  </div>`;
+}
+
+function rutePopupHtml(p) {
+  const warna    = p.warna_peta || "#3b82f6";
+  const panjang  = p.panjang_km != null
+    ? `<div class="mpc-row">
+         <dt class="mpc-label">Panjang</dt>
+         <dd class="mpc-val"><b>${p.panjang_km} km</b></dd>
+       </div>` : "";
+  const arah = (p.titik_awal && p.titik_akhir)
+    ? `<div class="mpc-row">
+         <dt class="mpc-label">Arah</dt>
+         <dd class="mpc-val">${p.titik_awal} <span class="mpc-arrow">→</span> ${p.titik_akhir}</dd>
+       </div>` : "";
+
+  return `
+  <div class="mpc-card">
+    <div class="mpc-header" style="border-top:3px solid ${warna}">
+      <div class="mpc-icon-wrap" style="background:${warna}15;color:${warna}">${SVG_ROUTE}</div>
+      <div class="mpc-title-col">
+        <p class="mpc-name">${p.kode_trayek || "Rute"}</p>
+        <span class="mpc-subtitle">${p.nama_trayek || ""}</span>
+      </div>
+    </div>
+    <dl class="mpc-grid">
+      ${arah}
+      ${panjang}
+    </dl>
+  </div>`;
+}
+
+function radiusPopupHtml(r) {
+  return `
+  <div class="mpc-card">
+    <div class="mpc-header" style="border-top:3px solid #f59e0b">
+      <div class="mpc-icon-wrap" style="background:#fef3c720;color:#d97706">${SVG_SEARCH}</div>
+      <div class="mpc-title-col">
+        <p class="mpc-name">Titik Pencarian</p>
+        <span class="mpc-subtitle">Radius <b>${r.radius} m</b> aktif</span>
+      </div>
+    </div>
+    <dl class="mpc-grid">
+      <div class="mpc-row">
+        <dt class="mpc-label">Koordinat</dt>
+        <dd class="mpc-val mpc-mono">${r.lat.toFixed(6)},&nbsp;${r.lng.toFixed(6)}</dd>
+      </div>
+      <div class="mpc-row">
+        <dt class="mpc-label">Halte</dt>
+        <dd class="mpc-val"><b>${r.halte?.length ?? 0}</b> dalam radius</dd>
+      </div>
+    </dl>
+  </div>`;
+}
+
+function tripPinPopupHtml(letter, color, label, lat, lng) {
+  return `
+  <div class="mpc-card mpc-card--compact">
+    <div class="mpc-header" style="border-top:3px solid ${color}">
+      <div class="mpc-dot-letter" style="background:${color}">${letter}</div>
+      <div class="mpc-title-col">
+        <p class="mpc-name">${label}</p>
+        <span class="mpc-subtitle mpc-mono">${lat.toFixed(5)},&nbsp;${lng.toFixed(5)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ─────────────────────────────────────────
+   Inner map components
+───────────────────────────────────────── */
 function ClickToSearch({ onMapClick }) {
-  useMapEvents({
-    click(e) {
-      if (onMapClick) onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
-    },
-  });
+  useMapEvents({ click(e) { onMapClick?.({ lat: e.latlng.lat, lng: e.latlng.lng }); } });
   return null;
 }
 
 function MapPanner({ pos }) {
   const map = useMap();
   useEffect(() => {
-    if (pos) {
-      map.flyTo([pos.lat, pos.lng], pos.zoom || 16, { animate: true, duration: 1.5 });
-    }
+    if (pos) map.flyTo([pos.lat, pos.lng], pos.zoom || 16, { animate: true, duration: 1.5 });
   }, [pos, map]);
   return null;
 }
 
+/* ─────────────────────────────────────────
+   Main MapView
+───────────────────────────────────────── */
 export default function MapView({
   ruteFc, halteFc, selectedRute,
   showHalte = true, showRute = true, showRusak = true,
   radiusResult, onMapClick,
   mode = "radius", tripA, tripB, tripResult,
-  theme = "dark", panToPos,
+  theme = "light", panToPos,
 }) {
   const ruteFiltered = useMemo(() => ({
     type: "FeatureCollection",
@@ -97,124 +229,106 @@ export default function MapView({
   const halteFiltered = useMemo(() => {
     if (!showHalte) return [];
     return halteFc.features.filter((f) => {
-      const k = f.properties.kondisi_fisik;
-      if (!showRusak && k === "Tidak Beroperasi") return false;
+      if (!showRusak && f.properties.kondisi_fisik === "Tidak Beroperasi") return false;
       return true;
     });
   }, [halteFc, showHalte, showRusak]);
 
-  const ruteKey = `rute-${ruteFc.features.length}-${showRute}-${Array.from(selectedRute).sort().join(",")}-${mode}-${tripResult ? 'active' : 'inactive'}-${theme}`;
-  const absoluteColor = theme === "dark" ? "#f59e0b" : "#3b82f6";
-  const rideColor = absoluteColor;
+  const ruteKey     = `rute-${ruteFc.features.length}-${showRute}-${Array.from(selectedRute).sort().join(",")}-${mode}-${!!tripResult}-${theme}`;
+  const rideColor   = theme === "dark" ? "#f59e0b" : "#3b82f6";
+  const isDark      = theme === "dark";
+
+  /* Tile URLs — Voyager (Google Maps feel) for light, Dark Matter for dark */
+  const tileUrl  = isDark
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+  const tileAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
+
+  const popupOpts = { maxWidth: 300, className: "mpc-popup" };
 
   return (
     <MapContainer center={PEKANBARU_CENTER} zoom={12} scrollWheelZoom style={{ cursor: "crosshair" }}>
-      {theme === "dark" ? (
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | &copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
-      ) : (
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | &copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        />
-      )}
+      <TileLayer url={tileUrl} attribution={tileAttr} maxZoom={19} />
 
       <ClickToSearch onMapClick={onMapClick} />
       <MapPanner pos={panToPos} />
 
-      {/* === Rute (LineString) === */}
+      {/* ── Rute lines ── */}
       {showRute && ruteFiltered.features.length > 0 && (
         <GeoJSON
           key={ruteKey}
           data={ruteFiltered}
-          style={(f) => {
-            const isTripModeActive = mode === "trip" && tripResult;
-            return {
-              color: f.properties.warna_peta || "#3388ff",
-              weight: isTripModeActive ? 4 : 6, 
-              opacity: isTripModeActive ? 0.3 : 0.85,
-            };
-          }}
+          style={(f) => ({
+            color:   f.properties.warna_peta || "#3388ff",
+            weight:  mode === "trip" && tripResult ? 3 : 5,
+            opacity: mode === "trip" && tripResult ? 0.25 : 0.9,
+            lineCap: "round", lineJoin: "round",
+          })}
           onEachFeature={(feature, layer) => {
-            const p = feature.properties;
-            layer.bindPopup(`
-              <div class="popup-row">
-                <b>${p.kode_trayek} · ${p.nama_trayek}</b><br/>
-                ${p.titik_awal} &rarr; ${p.titik_akhir}<br/>
-                Panjang: <b>${p.panjang_km ?? "?"} km</b>
-              </div>
-            `);
+            layer.bindPopup(rutePopupHtml(feature.properties), popupOpts);
           }}
         />
       )}
 
-      {/* === Halte (SVG bus-stop pin) === */}
+      {/* ── Halte markers ── */}
       {halteFiltered.map((f) => {
         const [lng, lat] = f.geometry.coordinates;
-        const p = f.properties;
+        const p = { ...f.properties, latitude: lat, longitude: lng };
         return (
-          <Marker
-            key={p.id_halte}
-            position={[lat, lng]}
-            icon={ICONS[p.kondisi_fisik] || ICONS["Beroperasi"]}
-          >
-            <Popup>
-              <div className="popup-row">
-                <b>{p.nama_halte}</b>{" "}
-                <span className={badgeClass(p.kondisi_fisik)}>{p.kondisi_fisik}</span><br/>
-                {p.nama_jalan && <>{p.nama_jalan}<br/></>}
-                {p.kode_trayek && <>{p.kode_trayek} &middot; {p.nama_trayek}<br/></>}
-                {p.keterangan && <em style={{ color: "#6b7280" }}>{p.keterangan}</em>}
-              </div>
+          <Marker key={p.id_halte} position={[lat, lng]}
+                  icon={ICONS[p.kondisi_fisik] || ICONS["Beroperasi"]}>
+            <Popup {...popupOpts}>
+              <div dangerouslySetInnerHTML={{ __html: haltePopupHtml(p) }} />
             </Popup>
           </Marker>
         );
       })}
 
-      {/* === Lingkaran radius (mode radius) === */}
+      {/* ── Radius circle + search pin ── */}
       {mode === "radius" && radiusResult && (
         <>
           <Circle
             center={[radiusResult.lat, radiusResult.lng]}
             radius={radiusResult.radius}
-            pathOptions={{ color: "#f59e0b", fillOpacity: 0.15, weight: 2, dashArray: "4 6" }}
+            pathOptions={{ color: "#f59e0b", fillColor: "#f59e0b", fillOpacity: 0.08, weight: 2, dashArray: "6 8" }}
           />
           <Marker position={[radiusResult.lat, radiusResult.lng]} icon={ICON_SEARCH}>
-            <Popup>
-              <div className="popup-row">
-                <b>Titik Pencarian</b><br/>
-                Lat: {radiusResult.lat.toFixed(6)}<br/>
-                Lng: {radiusResult.lng.toFixed(6)}<br/>
-                Radius: {radiusResult.radius} m<br/>
-                Halte ditemukan: <b>{radiusResult.halte?.length ?? 0}</b>
-              </div>
+            <Popup {...popupOpts}>
+              <div dangerouslySetInnerHTML={{ __html: radiusPopupHtml(radiusResult) }} />
             </Popup>
           </Marker>
         </>
       )}
 
-      {/* === Trip A->B (mode trip) === */}
+      {/* ── Trip ride line ── */}
       {mode === "trip" && tripResult?.ride_geojson && (
         <>
-          {/* halo putih di bawah agar jalur menonjol */}
-          <GeoJSON key={`ride-halo-${tripResult.halte_naik?.id_halte}-${tripResult.halte_turun?.id_halte}`}
-                   data={tripResult.ride_geojson}
-                   style={{ color: "#ffffff", weight: 11, opacity: 0.9 }} />
-          <GeoJSON key={`ride-${tripResult.halte_naik?.id_halte}-${tripResult.halte_turun?.id_halte}`}
-                   data={tripResult.ride_geojson}
-                   style={{ color: rideColor, weight: 6, opacity: 1 }} />
+          <GeoJSON
+            key={`ride-halo-${tripResult.halte_naik?.id_halte}`}
+            data={tripResult.ride_geojson}
+            style={{ color: "#fff", weight: 10, opacity: 0.85, lineCap: "round" }}
+          />
+          <GeoJSON
+            key={`ride-${tripResult.halte_naik?.id_halte}`}
+            data={tripResult.ride_geojson}
+            style={{ color: rideColor, weight: 5, opacity: 1, lineCap: "round" }}
+          />
         </>
       )}
+
+      {/* ── Trip A/B pins ── */}
       {mode === "trip" && tripA && (
         <Marker position={[tripA.lat, tripA.lng]} icon={ICON_A}>
-          <Popup><b>Titik Asal (A)</b></Popup>
+          <Popup {...popupOpts}>
+            <div dangerouslySetInnerHTML={{ __html: tripPinPopupHtml("A", "#16a34a", "Titik Asal", tripA.lat, tripA.lng) }} />
+          </Popup>
         </Marker>
       )}
       {mode === "trip" && tripB && (
         <Marker position={[tripB.lat, tripB.lng]} icon={ICON_B}>
-          <Popup><b>Titik Tujuan (B)</b></Popup>
+          <Popup {...popupOpts}>
+            <div dangerouslySetInnerHTML={{ __html: tripPinPopupHtml("B", "#dc2626", "Titik Tujuan", tripB.lat, tripB.lng) }} />
+          </Popup>
         </Marker>
       )}
     </MapContainer>
